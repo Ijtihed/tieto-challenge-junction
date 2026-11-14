@@ -1,0 +1,219 @@
+%% ═══════════════════════════════════════════════════════════════
+%% Bundled Datalog rules — data flow
+%% Per architecture/specs/datalog-lite.md §5.5
+%%
+%% 8 rules dependent on §17.1 data-flow-lite EDB predicates:
+%%   reads_field/2, writes_field/2, reads_table/2, writes_table/2,
+%%   reads_env/2, writes_env/2
+%%
+%% All rules in this file require the data-flow EDB extension.
+%% They are evaluated once data-flow-lite edges ship (v1.1).
+%% ═══════════════════════════════════════════════════════════════
+
+% ─── Shared helpers ─────────────────────────────────────────────
+
+% Transitive table writes via call chains.
+transitively_writes_table(N, T) :- writes_table(N, T).
+transitively_writes_table(N, T) :-
+  edge(N, "calls", M, _),
+  transitively_writes_table(M, T).
+
+% Transitive table reads via call chains.
+transitively_reads_table(N, T) :- reads_table(N, T).
+transitively_reads_table(N, T) :-
+  edge(N, "calls", M, _),
+  transitively_reads_table(M, T).
+
+% Transitive env reads via call chains.
+transitively_reads_env(N, V) :- reads_env(N, V).
+transitively_reads_env(N, V) :-
+  edge(N, "calls", M, _),
+  transitively_reads_env(M, V).
+
+% Whether a field is ever read anywhere in the graph.
+field_is_read(F) :- reads_field(_, F).
+
+% A variable is centralized if ≥1 utility (config) module reads it.
+env_in_config(V) :- reads_env(N, V), node(N, "utility", _).
+
+% Services that transitively write a given table.
+service_writes(S, T) :-
+  node(S, "service", _),
+  transitively_writes_table(S, T).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 1 / 8 — read-before-write
+% ═══════════════════════════════════════════════════════════════
+
+%% id: read-before-write
+%% severity: info
+%% description: A field written but never read anywhere is a potential dead write.
+%% requires: dataflow (v1.1), negation (v1.2)
+%%
+
+% If no node in the entire graph reads field F, any writes_field to F
+% are wasted work — the data is produced but never consumed.
+violation("read-before-write", N) :-
+  writes_field(N, F),
+  not field_is_read(F).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 2 / 8 — table-access-through-model
+% ═══════════════════════════════════════════════════════════════
+
+%% id: table-access-through-model
+%% severity: warn
+%% description: Only data_access nodes should directly read/write tables.
+%% requires: dataflow (v1.1)
+%%
+
+% Services touching tables directly bypass the repository pattern.
+violation("table-access-through-model", N) :-
+  node(N, "service", _), reads_table(N, _).
+violation("table-access-through-model", N) :-
+  node(N, "service", _), writes_table(N, _).
+
+% Route handlers touching tables is a layer violation.
+violation("table-access-through-model", N) :-
+  node(N, "route_handler", _), reads_table(N, _).
+violation("table-access-through-model", N) :-
+  node(N, "route_handler", _), writes_table(N, _).
+
+% Middleware touching tables violates separation of concerns.
+violation("table-access-through-model", N) :-
+  node(N, "middleware", _), reads_table(N, _).
+violation("table-access-through-model", N) :-
+  node(N, "middleware", _), writes_table(N, _).
+
+% Utility modules touching tables breaks their general-purpose contract.
+violation("table-access-through-model", N) :-
+  node(N, "utility", _), reads_table(N, _).
+violation("table-access-through-model", N) :-
+  node(N, "utility", _), writes_table(N, _).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 3 / 8 — env-documented
+% ═══════════════════════════════════════════════════════════════
+
+%% id: env-documented
+%% severity: info
+%% description: Environment variable access should be centralized in config modules.
+%% requires: dataflow (v1.1), negation (v1.2)
+%%
+
+% A non-config node reads an env var that no utility/config module
+% also reads — the variable is likely undocumented and accessed
+% without a centralized config layer.
+violation("env-documented", N) :-
+  reads_env(N, V),
+  node(N, K, _),
+  K != "utility",
+  not env_in_config(V).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 4 / 8 — no-transitive-write
+% ═══════════════════════════════════════════════════════════════
+
+%% id: no-transitive-write
+%% severity: warn
+%% description: Route handlers should not transitively write to >3 tables.
+%% requires: dataflow (v1.1), aggregation (v1.2+)
+%%
+
+% A route handler whose transitive call-chain touches >3 distinct
+% tables for writes is doing too much in a single request — split
+% into smaller operations or use a saga/orchestrator.
+handler_table_write_count(N, C) :-
+  node(N, "route_handler", _),
+  C = count : { transitively_writes_table(N, _) }.
+
+violation("no-transitive-write", N) :-
+  handler_table_write_count(N, C),
+  C > 3.
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 5 / 8 — side-effect-in-middleware
+% ═══════════════════════════════════════════════════════════════
+
+%% id: side-effect-in-middleware
+%% severity: warn
+%% description: Middleware should not write to database tables.
+%% requires: dataflow (v1.1)
+%%
+
+% Middleware that transitively writes tables has side effects beyond
+% its cross-cutting concern. Audit logging is the common exception —
+% suppress this rule for known audit-logger middleware via user rules.
+violation("side-effect-in-middleware", N) :-
+  node(N, "middleware", _),
+  transitively_writes_table(N, _).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 6 / 8 — read-only-query-handler
+% ═══════════════════════════════════════════════════════════════
+
+%% id: read-only-query-handler
+%% severity: warn
+%% description: Read/query route handlers should not transitively write tables.
+%% requires: dataflow (v1.1), string_match (v1.2+)
+%%
+
+% Matches route handlers whose name indicates a read-only operation.
+% Full coverage requires HTTP method in the EDB via node_attr.
+query_handler(N) :- node(N, "route_handler", Name), contains(Name, "get").
+query_handler(N) :- node(N, "route_handler", Name), contains(Name, "list").
+query_handler(N) :- node(N, "route_handler", Name), contains(Name, "fetch").
+query_handler(N) :- node(N, "route_handler", Name), contains(Name, "find").
+query_handler(N) :- node(N, "route_handler", Name), contains(Name, "search").
+query_handler(N) :- node(N, "route_handler", Name), contains(Name, "show").
+
+violation("read-only-query-handler", N) :-
+  query_handler(N),
+  transitively_writes_table(N, _).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 7 / 8 — write-isolation
+% ═══════════════════════════════════════════════════════════════
+
+%% id: write-isolation
+%% severity: warn
+%% description: Each table should be written by ≤3 distinct services.
+%% requires: dataflow (v1.1), aggregation (v1.2+)
+%%
+
+% A table written by >3 services lacks clear ownership — who is
+% responsible for schema migrations, data integrity constraints,
+% and access control?
+write_service_count(T, C) :-
+  writes_table(_, T),
+  C = count : { service_writes(_, T) }.
+
+violation("write-isolation", S) :-
+  service_writes(S, T),
+  write_service_count(T, C),
+  C > 3.
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 8 / 8 — env-not-in-handler
+% ═══════════════════════════════════════════════════════════════
+
+%% id: env-not-in-handler
+%% severity: warn
+%% description: Route handlers should not read environment variables directly.
+%% requires: dataflow (v1.1)
+%%
+
+% Route handlers that read env vars directly couple presentation to
+% deployment configuration. Env access belongs in utility/config
+% modules injected via constructor or middleware.
+violation("env-not-in-handler", N) :-
+  node(N, "route_handler", _),
+  reads_env(N, _).

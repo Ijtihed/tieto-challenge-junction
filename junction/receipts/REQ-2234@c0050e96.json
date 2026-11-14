@@ -1,0 +1,271 @@
+{
+  "id": "REQ-2234@c0050e96",
+  "generatedAt": "2026-11-14T06:02:24.685Z",
+  "engineVersion": "earned-trust/0.1",
+  "branch": "agent/req-2234-20261114-055948",
+  "requirement": {
+    "id": "REQ-2234",
+    "title": "Analyzer diagnostics must still be reported when SuppressSourceGeneration = true",
+    "source": "https://github.com/MessagePack-CSharp/MessagePack-CSharp/issues/2234",
+    "branch": "ju26-issue-2234",
+    "kind": "bug",
+    "intent": "Turning off source generation must not silence the analyzer; it regressed in 3.1.1.",
+    "functional": [
+      "Analyzer reports its diagnostics when SuppressSourceGeneration is true",
+      "Generator still emits nothing when SuppressSourceGeneration is true"
+    ],
+    "nonFunctional": [
+      "No change to diagnostics when SuppressSourceGeneration is false",
+      "No public API change"
+    ],
+    "expectedScope": [
+      "src/MessagePack.SourceGenerator/**",
+      "tests/MessagePack.SourceGenerator.Tests/**",
+      "README.md"
+    ],
+    "issueBody": "#### Bug description\n\nThe analyzer does not work if SuppressSourceGeneration = true. This has happened since version 3.1.1. It still worked in 3.1.0."
+  },
+  "repo": "/home/ijtihed/junction26-messagepack-csharp",
+  "baseSha": "32258fdbee4bcd653c79f51b4376b5103c6f4d27",
+  "headSha": "c0050e964831f3fa3be7aaf0420a32488ccb6d9e",
+  "graphStats": {
+    "files": 681,
+    "nodes": 9163,
+    "edges": 30344,
+    "nameResolvedEdges": 266
+  },
+  "story": [
+    "REQ-2234 (bug): Analyzer diagnostics must still be reported when SuppressSourceGeneration = true.",
+    "The agent changed 0 member(s) across 0 type(s) and added 1 test(s).",
+    "1 files changed: 1 test.",
+    "Risk score 0 → Light check. Owner reads 0 of 23 changed lines."
+  ],
+  "summary": {
+    "files": 1,
+    "added": 23,
+    "deleted": 0,
+    "byClass": {
+      "test": {
+        "files": 1,
+        "lines": 23
+      }
+    },
+    "readLines": 0,
+    "totalLines": 23
+  },
+  "files": [
+    {
+      "path": "tests/MessagePack.SourceGenerator.Tests/MsgPack00xAnalyzerTests.cs",
+      "status": "M",
+      "isCs": true,
+      "generated": false,
+      "isTest": true,
+      "added": 23,
+      "deleted": 0,
+      "triviaOnly": false,
+      "fileLevel": [],
+      "cls": "test",
+      "inScope": true,
+      "areas": []
+    }
+  ],
+  "members": [],
+  "newTests": [
+    {
+      "key": "MsgPack00xAnalyzerTests.DiagnosticsReportedWhenSourceGenerationSuppressed()",
+      "file": "tests/MessagePack.SourceGenerator.Tests/MsgPack00xAnalyzerTests.cs",
+      "reaches": []
+    }
+  ],
+  "claims": [
+    {
+      "id": "scope",
+      "decidedBy": "requirement",
+      "text": "Every changed file is inside the expected scope of REQ-2234.",
+      "status": "verified",
+      "evidence": [
+        {
+          "label": "1 files match",
+          "detail": "src/MessagePack.SourceGenerator/**, tests/MessagePack.SourceGenerator.Tests/**, README.md"
+        }
+      ]
+    },
+    {
+      "id": "public-api",
+      "decidedBy": "roslyn-ast",
+      "text": "No public API is added, removed or changed.",
+      "status": "verified",
+      "evidence": [
+        {
+          "label": "accessibility of every changed member",
+          "detail": "no members changed"
+        }
+      ]
+    },
+    {
+      "id": "tests-reach",
+      "decidedBy": "schema-graph",
+      "text": "Every changed member is reached by at least one test in the call graph.",
+      "status": "verified",
+      "evidence": []
+    },
+    {
+      "id": "adds-tests",
+      "decidedBy": "roslyn-ast",
+      "text": "The change adds tests for its own behaviour.",
+      "status": "partial",
+      "evidence": [
+        {
+          "label": "reaches no changed member",
+          "ref": "MsgPack00xAnalyzerTests.DiagnosticsReportedWhenSourceGenerationSuppressed()"
+        }
+      ]
+    },
+    {
+      "id": "no-silencing",
+      "decidedBy": "policy",
+      "text": "No added code drops, suppresses or swallows anything.",
+      "status": "verified",
+      "evidence": [
+        {
+          "label": "patterns checked",
+          "detail": "drops-diagnostics, empty-catch, conditional-report"
+        }
+      ]
+    },
+    {
+      "id": "req-1",
+      "decidedBy": "requirement",
+      "text": "Requirement: \"Analyzer reports its diagnostics when SuppressSourceGeneration is true\" has a matching test.",
+      "status": "heuristic",
+      "evidence": [
+        {
+          "label": "best name match (4 shared words)",
+          "ref": "MsgPack00xAnalyzerTests.DiagnosticsReportedWhenSourceGenerationSuppressed()"
+        }
+      ]
+    },
+    {
+      "id": "req-2",
+      "decidedBy": "requirement",
+      "text": "Requirement: \"Generator still emits nothing when SuppressSourceGeneration is true\" has a matching test.",
+      "status": "heuristic",
+      "evidence": [
+        {
+          "label": "best name match (2 shared words)",
+          "ref": "MsgPack00xAnalyzerTests.DiagnosticsReportedWhenSourceGenerationSuppressed()"
+        }
+      ]
+    },
+    {
+      "id": "tests-pass",
+      "decidedBy": "test-run",
+      "text": "The tests that reach this change pass.",
+      "status": "unverified",
+      "evidence": [
+        {
+          "label": "not run yet",
+          "detail": "run trust.run_tests to record a result"
+        }
+      ]
+    }
+  ],
+  "refusals": [
+    {
+      "question": "The agent was unsure: Made no source change. Is that acceptable?",
+      "why": "Self-reported by the agent: No failing behaviour was found; changing TypeCollector guesswork would risk altering diagnostics when suppression is false",
+      "evidence": [
+        {
+          "label": "agent evidence",
+          "detail": "tests/MessagePack.SourceGenerator.Tests/MsgPack00xAnalyzerTests.cs DiagnosticsReportedWhenSourceGenerationSuppressed passes on unmodified code"
+        }
+      ],
+      "routeTo": "change owner"
+    },
+    {
+      "question": "Which specific diagnostic is missing under SuppressSourceGeneration = true in the reporter's project?",
+      "why": "The agent left this for a human.",
+      "evidence": [],
+      "routeTo": "change owner"
+    },
+    {
+      "question": "Is the regression in the MSBuild/analyzer packaging layer (outside src/MessagePack.SourceGenerator) rather than in the code?",
+      "why": "The agent left this for a human.",
+      "evidence": [],
+      "routeTo": "change owner"
+    },
+    {
+      "question": "Someone with git access should diff TypeCollector.cs and the analyzer between v3.1.0 and v3.1.1.",
+      "why": "The agent left this for a human.",
+      "evidence": [],
+      "routeTo": "change owner"
+    }
+  ],
+  "risk": {
+    "score": 0,
+    "factors": [],
+    "baseTier": "light",
+    "tier": "light",
+    "tierLabel": "Light check",
+    "tierMeaning": "Owner skims the receipt and spot-checks one item.",
+    "trustAdjustments": []
+  },
+  "readList": [],
+  "checked": [
+    {
+      "what": "Member-level AST diff of 1 C# files (whitespace/comment-only edits separated)",
+      "by": "roslyn-ast"
+    },
+    {
+      "what": "Call-graph reachability over 9163 symbols / 30344 edges at c0050e96",
+      "by": "schema-graph"
+    },
+    {
+      "what": "Scope against REQ-2234 expected paths",
+      "by": "requirement"
+    },
+    {
+      "what": "Silencing patterns on 0 authored files",
+      "by": "policy"
+    }
+  ],
+  "notChecked": [
+    {
+      "what": "Test execution",
+      "why": "No test run recorded for this commit."
+    },
+    {
+      "what": "Performance",
+      "why": "No benchmark is run; MessagePack has BenchmarkDotNet suites, but not in the review loop."
+    },
+    {
+      "what": "Behaviour in trimmed / NativeAOT apps",
+      "why": "Requires a publish + run outside this engine."
+    },
+    {
+      "what": "Call edges through reflection or generated code not in the repo",
+      "why": "The static graph only sees source; name-resolved edges are marked lower confidence."
+    }
+  ],
+  "areas": [],
+  "agent": {
+    "runId": "REQ-2234-20261114-055948",
+    "model": "claude-sonnet-5-5",
+    "agentVersion": "2.1.323",
+    "turns": 36,
+    "costUsd": 0.5314511000000001,
+    "durationMs": 141810,
+    "summary": "Could not reproduce the regression on this branch. Analyzer code paths report diagnostics regardless of SuppressSourceGeneration, and the generator is gated separately via IsGeneratingSource. I added one passing regression-guard test (MsgPack004 under suppression) but made no source change, so the 'test fails without change' requirement is not met. git history comparison with 3.1.0 was blocked by the sandbox.",
+    "decisions": [
+      {
+        "decision": "Made no source change",
+        "why": "No failing behaviour was found; changing TypeCollector guesswork would risk altering diagnostics when suppression is false",
+        "alternatives": "Remove the derivedKeyAttribute/suppress guards at TypeCollector.cs:921 and :1071 (would change behaviour for derived KeyAttribute under suppression)",
+        "confidence": "unsure",
+        "evidence": "tests/MessagePack.SourceGenerator.Tests/MsgPack00xAnalyzerTests.cs DiagnosticsReportedWhenSourceGenerationSuppressed passes on unmodified code"
+      }
+    ],
+    "steps": 47
+  },
+  "digest": "f2226f3b4cf865ec92d9bf2fd8ab0e554f5dd047b883fe3e26541c0b5fc318ed"
+}

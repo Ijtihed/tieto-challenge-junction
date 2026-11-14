@@ -1,0 +1,88 @@
+# Schema v3 · gitignore
+#
+# Per architecture/schema-v3.md §11: Node.js LTS runtime.
+# This file ignores conventional Node + macOS + IDE artifacts.
+# Updated as build phases land.
+
+# ── Node / npm / pnpm ──
+node_modules/
+.npm/
+.pnpm-store/
+.yarn/
+.pnp.*
+pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── Build output ──
+dist/
+build/
+out/
+*.tsbuildinfo
+.tsbuildinfo
+
+# ── Test + coverage ──
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# ── SQLite cache (per architecture §7.5) ──
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+.schema/cache/
+
+# ── Environment + secrets ──
+# Per .cursor/rules/no-secret-pushes.mdc (carried forward conceptually):
+# never commit .env files; samplers are BYOK per architecture §3.7.
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+credentials.json
+secrets.json
+
+# ── macOS ──
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# ── Windows ──
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ── Linux ──
+*~
+
+# ── IDE / editor ──
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+.idea/
+*.swp
+*.swo
+.cursor/
+.claude/
+
+# ── Logs ──
+logs/
+*.log
+
+# ── Bundler artifacts (when build phases land) ──
+*.tgz
+*.tar.gz
+*.vsix
+
+# ── Native bindings (per architecture §11.2: napi-rs optionalDependencies) ──
+*.node
+# but allow the per-platform fixtures + tests:
+!tests/fixtures/**/*.node

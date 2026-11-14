@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Schema v1.0 — What We Built</title>
+<style>
+  :root { --bg: #0F0F11; --surface: #1A1B1E; --border: #2A2C32; --text: #E4E5E9; --muted: #8B8D93; --accent: #4CC9F0; --amber: #FBBF24; --green: #34D399; --red: #F87171; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; line-height: 1.7; }
+  .container { max-width: 900px; margin: 0 auto; padding: 60px 24px 120px; }
+  h1 { font-size: 2.5rem; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 8px; }
+  h1 span { color: var(--accent); }
+  .subtitle { color: var(--muted); font-size: 1.1rem; margin-bottom: 48px; }
+  h2 { font-size: 1.5rem; font-weight: 600; margin: 56px 0 24px; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+  h3 { font-size: 1.15rem; font-weight: 600; margin: 32px 0 12px; color: var(--accent); }
+  p { margin-bottom: 16px; color: var(--muted); }
+  strong { color: var(--text); font-weight: 600; }
+
+  .flow { display: flex; flex-direction: column; gap: 2px; margin: 24px 0; }
+  .flow-step { display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: var(--surface); border: 1px solid var(--border); }
+  .flow-step:first-child { border-radius: 10px 10px 0 0; }
+  .flow-step:last-child { border-radius: 0 0 10px 10px; }
+  .flow-num { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--bg); font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .flow-label { font-size: 0.95rem; }
+  .flow-label code { background: rgba(76,201,240,0.1); color: var(--accent); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+  .flow-time { margin-left: auto; color: var(--muted); font-size: 0.8rem; white-space: nowrap; }
+
+  .before-after { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
+  @media (max-width: 640px) { .before-after { grid-template-columns: 1fr; } }
+  .ba-card { padding: 20px; border-radius: 10px; border: 1px solid var(--border); }
+  .ba-card.before { background: rgba(248,113,113,0.04); border-color: rgba(248,113,113,0.2); }
+  .ba-card.after { background: rgba(52,211,153,0.04); border-color: rgba(52,211,153,0.2); }
+  .ba-card h4 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+  .ba-card.before h4 { color: var(--red); }
+  .ba-card.after h4 { color: var(--green); }
+  .ba-card ul { list-style: none; padding: 0; }
+  .ba-card li { padding: 4px 0; font-size: 0.9rem; color: var(--muted); }
+  .ba-card li::before { content: "→ "; color: var(--border); }
+
+  .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 24px 0; }
+  .metric { padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+  .metric-value { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+  .metric-label { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+
+  .quote { border-left: 3px solid var(--accent); padding: 16px 20px; background: rgba(76,201,240,0.04); border-radius: 0 8px 8px 0; margin: 24px 0; font-style: italic; color: var(--muted); }
+
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+  .badge-green { background: rgba(52,211,153,0.15); color: var(--green); }
+  .badge-amber { background: rgba(251,191,36,0.15); color: var(--amber); }
+  .badge-accent { background: rgba(76,201,240,0.15); color: var(--accent); }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+  th { color: var(--muted); font-weight: 500; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
+  td { color: var(--text); }
+  td:last-child { color: var(--muted); }
+
+  .e2e-diagram { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px; margin: 24px 0; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.85rem; line-height: 2; color: var(--muted); overflow-x: auto; }
+  .e2e-diagram .highlight { color: var(--accent); font-weight: 600; }
+  .e2e-diagram .dim { color: #5E6066; }
+  .e2e-diagram .green { color: var(--green); }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Schema <span>v1.0</span></h1>
+<p class="subtitle">A working end-to-end architecture intelligence product. Here's what it does and why it matters.</p>
+
+<!-- ──────────────── THE PROBLEM ──────────────── -->
+<h2>The Problem Schema Solves</h2>
+<p>Every AI coding tool (Cursor, Copilot, Cline, Claude Code) works with <strong>text</strong>. Schema works with <strong>architecture</strong>. When a staff+ engineer asks "where is auth handled?" or "what would break if I change this API?" — the AI currently guesses. Schema gives it a verified graph to reason about instead.</p>
+
+<div class="before-after">
+  <div class="ba-card before">
+    <h4>Before Schema</h4>
+    <ul>
+      <li>AI reads raw files, guesses at architecture</li>
+      <li>PR reviews are vibes — "LGTM" on 2000-line diffs</li>
+      <li>No one knows when the architecture drifts</li>
+      <li>Invented API calls pass code review undetected</li>
+      <li>"Where is X?" requires 20 minutes of grep</li>
+    </ul>
+  </div>
+  <div class="ba-card after">
+    <h4>After Schema</h4>
+    <ul>
+      <li>AI queries a typed graph of your real architecture</li>
+      <li>Every PR gets a machine-verified review comment</li>
+      <li>Weekly drift reports surface architectural decay</li>
+      <li>Hallucinated APIs are flagged with "did you mean?"</li>
+      <li>"Where is X?" returns ranked evidence in &lt;30ms</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ──────────────── WHAT IT DOES ──────────────── -->
+<h2>What Schema Actually Does (End-to-End)</h2>
+
+<h3>1. You install it in 2 minutes</h3>
+<p>Schema is an <strong>MCP server</strong>. It plugs into Cursor, Claude Code, Cline, or Continue. No account, no cloud, no API key. One <code>npm install</code> + a 3-line config in your editor's <code>mcp.json</code>.</p>
+
+<h3>2. You ask a question → Schema answers from the graph</h3>
+<p>When you type <em>"where is authentication handled?"</em> in Cursor, Schema's <code>graph.ask</code> action fires:</p>
+
+<div class="flow">
+  <div class="flow-step">
+    <div class="flow-num">1</div>
+    <div class="flow-label">Your question hits <code>graph.ask</code> via MCP</div>
+    <div class="flow-time">&lt;1ms</div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-num">2</div>
+    <div class="flow-label">BM25 lexical search across all symbols + file names</div>
+    <div class="flow-time">~5ms</div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-num">3</div>
+    <div class="flow-label">Graph traversal walks architectural neighbours</div>
+    <div class="flow-time">~10ms</div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-num">4</div>
+    <div class="flow-label">Reciprocal Rank Fusion combines both signals</div>
+    <div class="flow-time">&lt;1ms</div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-num">5</div>
+    <div class="flow-label">Top-K ranked nodes returned as <strong>evidence</strong></div>
+    <div class="flow-time"><strong>25ms total</strong></div>
+  </div>
+</div>
+
+<p>Schema returns evidence. Your AI synthesises the answer. <strong>Schema never has merge authority</strong> — it's an advisor, always.</p>
+
+<h3>3. Every PR gets a review comment — automatically</h3>
+<p>A GitHub Action fires on every push to a PR. Schema diffs the graph, evaluates architectural rules, detects hallucinated API calls, and posts a sticky comment. No manual step.</p>
+
+<div class="flow">
+  <div class="flow-step">
+    <div class="flow-num">1</div>
+    <div class="flow-label">PR push triggers <code>.github/workflows/schema.yml</code></div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-num">2</div>
+    <div class="flow-label">Schema extracts the graph + diffs against the base</div>
+    <div class="flow-time">~600ms</div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-num">3</div>
+    <div class="flow-label">Rules evaluate · hallucinated APIs flagged · semantic diff classified</div>
+    <div class="flow-time">~90ms</div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-num">4</div>
+    <div class="flow-label">667-line review comment posted (or previous one updated)</div>
+    <div class="flow-time"><span class="badge badge-green">sticky</span></div>
+  </div>
+</div>
+
+<p>The comment includes:</p>
+<table>
+  <tr><th>Section</th><th>What it tells you</th></tr>
+  <tr><td>Semantic summary</td><td>Is this a real change or mechanical noise? (high_impact / low_impact / semantic_noop)</td></tr>
+  <tr><td>Changed files</td><td>Full list with +/- line counts</td></tr>
+  <tr><td>Rule violations</td><td>Architectural rules broken by this PR, with deep links to the atlas</td></tr>
+  <tr><td>Hallucinated APIs</td><td>Functions called in the diff that <em>don't exist</em> in the graph — with BM25 "did you mean?" suggestions</td></tr>
+  <tr><td>Atlas link</td><td>One click to the visual atlas with the PR's changes highlighted</td></tr>
+</table>
+
+<h3>4. Weekly drift reports surface architectural decay</h3>
+<p>Every Monday, a cron job runs <code>drift.generate</code> and opens a PR with the drift report. Four sections:</p>
+<table>
+  <tr><th>Section</th><th>What it catches</th></tr>
+  <tr><td>Areas grown / shrunk</td><td>Clusters that gained or lost significant nodes</td></tr>
+  <tr><td>New cross-cluster deps</td><td>Dependencies that didn't exist last week</td></tr>
+  <tr><td>Deprecation candidates</td><td>Nodes that lost most of their callers</td></tr>
+  <tr><td>Rule-violation trend</td><td>Are violations increasing or decreasing over time?</td></tr>
+</table>
+<p>If nothing changed substantively, the cron skips silently. No noise.</p>
+
+<h3>5. The visual atlas shows your architecture in real time</h3>
+<p>Studio is a React canvas that renders your codebase as a typed graph at three zoom levels:</p>
+<table>
+  <tr><th>Level</th><th>What you see</th></tr>
+  <tr><td>L0 · Architecture</td><td>Clusters with shape badges (Service / Domain / Library) + ★ entry-point hints</td></tr>
+  <tr><td>L1 · Modules</td><td>Files within a cluster, grouped by folder</td></tr>
+  <tr><td>L2 · Detail</td><td>Functions, classes, routes — every extractable symbol</td></tr>
+</table>
+
+<!-- ──────────────── THE NUMBERS ──────────────── -->
+<h2>How Fast It Is (Real Numbers, Real Repo)</h2>
+<p>Measured on Schema's own codebase (~1,550 nodes, ~8,150 edges, 39 clusters):</p>
+
+<div class="metric-grid">
+  <div class="metric">
+    <div class="metric-value">25ms</div>
+    <div class="metric-label">graph.ask (cold, first query)</div>
+  </div>
+  <div class="metric">
+    <div class="metric-value">&lt;1ms</div>
+    <div class="metric-label">graph.ask (warm, cached index)</div>
+  </div>
+  <div class="metric">
+    <div class="metric-value">90ms</div>
+    <div class="metric-label">pr.review (full E2E)</div>
+  </div>
+  <div class="metric">
+    <div class="metric-value">740ms</div>
+    <div class="metric-label">Full 8-action smoke (cold open)</div>
+  </div>
+</div>
+
+<!-- ──────────────── THE ARCHITECTURE ──────────────── -->
+<h2>What's Under the Hood</h2>
+
+<div class="e2e-diagram">
+<span class="dim">┌─────────────────────────────────────────────────────────────┐</span>
+<span class="dim">│</span> <span class="highlight">MCP Clients</span> (Cursor / Claude Code / Cline / Continue)       <span class="dim">│</span>
+<span class="dim">└──────────────────────────┬──────────────────────────────────┘</span>
+                           <span class="dim">│ stdio / HTTP</span>
+<span class="dim">┌──────────────────────────▼──────────────────────────────────┐</span>
+<span class="dim">│</span> <span class="highlight">Schema MCP Server</span> — 54 actions                              <span class="dim">│</span>
+<span class="dim">│</span>                                                             <span class="dim">│</span>
+<span class="dim">│</span>  <span class="green">graph.ask</span>        — hybrid RAG (BM25 + graph traversal)    <span class="dim">│</span>
+<span class="dim">│</span>  <span class="green">pr.review</span>        — diff + rules + hallucination detect    <span class="dim">│</span>
+<span class="dim">│</span>  <span class="green">drift.generate</span>   — weekly architectural drift report      <span class="dim">│</span>
+<span class="dim">│</span>  <span class="green">graph.entry_points</span> — top-3 per cluster by PageRank       <span class="dim">│</span>
+<span class="dim">│</span>  <span class="dim">... + 50 more actions</span>                                    <span class="dim">│</span>
+<span class="dim">└──────────────────────────┬──────────────────────────────────┘</span>
+                           <span class="dim">│</span>
+<span class="dim">┌──────────────────────────▼──────────────────────────────────┐</span>
+<span class="dim">│</span> <span class="highlight">Domain Engine</span> (pure TypeScript, no IO)                      <span class="dim">│</span>
+<span class="dim">│</span>                                                             <span class="dim">│</span>
+<span class="dim">│</span>  7 extractors    — TS, Python, Go, Rust, Ruby, Java, config <span class="dim">│</span>
+<span class="dim">│</span>  5-stage cluster — Leiden → merge → PageRank → 7-tier label <span class="dim">│</span>
+<span class="dim">│</span>  Recursive HERCULES — depth-3 sub-clustering for big repos  <span class="dim">│</span>
+<span class="dim">│</span>  BM25F + graph traversal + RRF — hybrid retrieval           <span class="dim">│</span>
+<span class="dim">│</span>  50 Datalog rules — architectural constraint evaluation     <span class="dim">│</span>
+<span class="dim">│</span>  Canonical shapes — Service / Domain / Library / Mixed      <span class="dim">│</span>
+<span class="dim">└──────────────────────────┬──────────────────────────────────┘</span>
+                           <span class="dim">│</span>
+<span class="dim">┌──────────────────────────▼──────────────────────────────────┐</span>
+<span class="dim">│</span> <span class="highlight">Persistence</span> — SQLite snapshot chain with git-SHA tags       <span class="dim">│</span>
+<span class="dim">│</span>  Stacked overlays (O(Δ) save for incremental changes)       <span class="dim">│</span>
+<span class="dim">│</span>  L1 file watch (chokidar) → L2 tree-sitter incremental      <span class="dim">│</span>
+<span class="dim">│</span>  L3 fact-equality cutoff → reactive cache invalidation       <span class="dim">│</span>
+<span class="dim">└──────────────────────────┬──────────────────────────────────┘</span>
+                           <span class="dim">│</span>
+<span class="dim">┌──────────────────────────▼──────────────────────────────────┐</span>
+<span class="dim">│</span> <span class="highlight">Studio</span> (Vite + React + ReactFlow)                           <span class="dim">│</span>
+<span class="dim">│</span>  3-level atlas (Architecture → Modules → Detail)            <span class="dim">│</span>
+<span class="dim">│</span>  ★ entry-point hints + shape badges on cluster boundaries   <span class="dim">│</span>
+<span class="dim">│</span>  PR mode (?pr=sha) + live-atlas pulse indicator             <span class="dim">│</span>
+<span class="dim">└─────────────────────────────────────────────────────────────┘</span>
+</div>
+
+<!-- ──────────────── THE DAILY DRIVER LOOP ──────────────── -->
+<h2>The Daily Driver Loop</h2>
+<p>This is the loop the founder uses every day. Every piece is wired and working:</p>
+
+<div class="flow">
+  <div class="flow-step">
+    <div class="flow-num">☀</div>
+    <div class="flow-label"><strong>Morning:</strong> open Cursor, Schema loads the workspace graph in ~600ms</div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-num">?</div>
+    <div class="flow-label"><strong>Question:</strong> "where is the clustering pipeline?" → <code>graph.ask</code> returns 10 ranked hits in 25ms</div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-num">📝</div>
+    <div class="flow-label"><strong>Code:</strong> edit files → L1 file-watch fires → L3 fact-equality decides if the graph needs updating</div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-num">🔀</div>
+    <div class="flow-label"><strong>PR:</strong> push → GitHub Action posts a sticky review comment with hallucination detection</div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-num">📊</div>
+    <div class="flow-label"><strong>Monday:</strong> drift cron fires → opens a PR with the weekly architectural health report</div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-num">🗺</div>
+    <div class="flow-label"><strong>Atlas:</strong> open Studio → see clusters with ★ entry points + Service/Domain/Library shapes</div>
+  </div>
+</div>
+
+<div class="quote">
+  "Schema does not have merge authority. This review is advisory. A human reviewer must approve any change."<br>
+  — Every Schema PR review comment (hybrid-strict positioning per research/26 §6)
+</div>
+
+<!-- ──────────────── WHAT'S NEXT ──────────────── -->
+<h2>What's Next</h2>
+<p>The technical product is done. <strong>One step remains:</strong> the 2-week founder dogfood (Step 11b). The founder uses Schema as their daily driver on a real work repo for 14 days. At the end:</p>
+
+<div class="metric-grid">
+  <div class="metric">
+    <div class="metric-value" style="font-size:1.2rem">Sean Ellis 40%+</div>
+    <div class="metric-label">"How disappointed would you be if Schema went away?"</div>
+  </div>
+  <div class="metric">
+    <div class="metric-value" style="font-size:1.2rem">≥50 events</div>
+    <div class="metric-label">Real usage across ≥5 different action kinds</div>
+  </div>
+  <div class="metric">
+    <div class="metric-value" style="font-size:1.2rem">0 blockers</div>
+    <div class="metric-label">Zero entries in the failure log that aren't resolved</div>
+  </div>
+</div>
+
+<p>When those three gates pass, v1.0 ships. Nothing is published until then — no npm, no VS Code Marketplace, no Homebrew, no landing page. The product earns its launch by being used, not by being announced.</p>
+
+<p style="margin-top:48px;color:var(--border);font-size:0.8rem;text-align:center">
+  Schema v1.0 · 54 MCP actions · 7 extractors · 39 clusters on its own codebase · built 2026-05-22
+</p>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,188 @@
+{
+  "title": "MessagePack-CSharp",
+  "exclude": [
+    "benchmark/",
+    "sandbox/"
+  ],
+  "rows": [
+    {
+      "label": "Compile time: what runs inside the user's build"
+    },
+    {
+      "label": "Runtime: what runs when the user serializes"
+    },
+    {
+      "label": "Tests and integrations"
+    }
+  ],
+  "groups": [
+    {
+      "id": "attributes",
+      "name": "Attributes",
+      "row": 0,
+      "col": 0,
+      "color": "#8a9bb0",
+      "slots": 3,
+      "about": "What users write on their types: [MessagePackObject], [Key], [Union].",
+      "prefixes": [
+        "src/MessagePack.Annotations/"
+      ]
+    },
+    {
+      "id": "analyzers",
+      "name": "Analyzers & code fixes",
+      "row": 0,
+      "col": 1,
+      "color": "#b0927a",
+      "slots": 3,
+      "about": "Diagnostics (MsgPack00x) and IDE fixes shown while the user types.",
+      "prefixes": [
+        "src/MessagePack.SourceGenerator/Analyzers/",
+        "src/MessagePack.Analyzers.CodeFixes/"
+      ]
+    },
+    {
+      "id": "generator",
+      "name": "Source generator",
+      "row": 0,
+      "col": 2,
+      "color": "#a3a38a",
+      "slots": 5,
+      "about": "Reads the user's types and decides what formatters to generate.",
+      "prefixes": [
+        "src/MessagePack.SourceGenerator/"
+      ]
+    },
+    {
+      "id": "templates",
+      "name": "Code templates",
+      "row": 0,
+      "col": 3,
+      "color": "#c4ad80",
+      "slots": 3,
+      "about": "T4 templates that emit the generated formatter and resolver code.",
+      "prefixes": [
+        "src/MessagePack.SourceGenerator/Transforms/"
+      ]
+    },
+    {
+      "id": "api",
+      "name": "Public API",
+      "row": 1,
+      "col": 0,
+      "color": "#7d9bbf",
+      "slots": 4,
+      "about": "MessagePackSerializer and its options: the entry point users call.",
+      "match": "^src/MessagePack/(MessagePackSerializer|MessagePackSecurity|IFormatterResolver|MessagePackCompression|MessagePackSerializationException|Utilities|SequencePool|BufferWriter|MessagePackEventSource)"
+    },
+    {
+      "id": "resolvers",
+      "name": "Resolvers",
+      "row": 1,
+      "col": 1,
+      "color": "#8fa98f",
+      "slots": 4,
+      "about": "Find the right formatter for each type at runtime.",
+      "prefixes": [
+        "src/MessagePack/Resolvers/"
+      ]
+    },
+    {
+      "id": "formatters",
+      "name": "Formatters",
+      "row": 1,
+      "col": 2,
+      "color": "#9cb08a",
+      "slots": 5,
+      "about": "Turn one .NET type into MessagePack bytes and back.",
+      "prefixes": [
+        "src/MessagePack/Formatters/"
+      ]
+    },
+    {
+      "id": "wire",
+      "name": "Wire format",
+      "row": 1,
+      "col": 3,
+      "color": "#7fa6a6",
+      "slots": 4,
+      "about": "Low-level reader and writer for the MessagePack byte format.",
+      "match": "^src/MessagePack/(MessagePackReader|MessagePackWriter|MessagePackPrimitives|MessagePackCode|MessagePackStreamReader|ExtensionHeader|ExtensionResult|MessagePackRange|SequenceReader|Nil|StringEncoding|T4)"
+    },
+    {
+      "id": "gentests",
+      "name": "Generator tests",
+      "row": 2,
+      "col": 0,
+      "color": "#8c8c8c",
+      "slots": 2,
+      "about": "Run the generator and analyzers on sample code and compare the output.",
+      "prefixes": [
+        "tests/MessagePack.SourceGenerator",
+        "tests/MessagePack.GeneratedCode.Tests/"
+      ]
+    },
+    {
+      "id": "runtests",
+      "name": "Runtime tests",
+      "row": 2,
+      "col": 1,
+      "color": "#8b97a8",
+      "slots": 2,
+      "about": "Serialize and deserialize real values end to end.",
+      "prefixes": [
+        "tests/"
+      ]
+    },
+    {
+      "id": "internals",
+      "name": "Runtime internals",
+      "row": 2,
+      "col": 2,
+      "color": "#a593a8",
+      "slots": 2,
+      "about": "Dynamic code emitting, pools and helpers behind the resolvers.",
+      "prefixes": [
+        "src/MessagePack/Internal/",
+        "src/MessagePack/"
+      ]
+    },
+    {
+      "id": "integrations",
+      "name": "Integrations",
+      "row": 2,
+      "col": 3,
+      "color": "#b88a85",
+      "slots": 1,
+      "about": "Unity, ASP.NET Core, ReactiveProperty and experimental packages.",
+      "prefixes": [
+        "src/",
+        "tests/"
+      ]
+    }
+  ],
+  "pinned": [
+    "TypeCollector",
+    "MessagePackGenerator",
+    "MsgPack00xMessagePackAnalyzer",
+    "TransformUtilities",
+    "FormatterTemplate",
+    "ResolverTemplate",
+    "EnumTemplate",
+    "UnionTemplate",
+    "CompositeResolverTemplate",
+    "GenericsFormatterTests",
+    "MsgPack00xAnalyzerTests",
+    "ObjectSerializationInfo",
+    "ReferenceSymbols",
+    "MessagePackSerializer",
+    "MessagePackReader",
+    "MessagePackWriter",
+    "StandardResolver",
+    "DynamicObjectResolver",
+    "MessagePackObjectAttribute",
+    "KeyAttribute",
+    "UnionAttribute",
+    "FormatterCodeFixProvider"
+  ]
+}

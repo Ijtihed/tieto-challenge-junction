@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "schema": {
+      "command": "npx",
+      "args": ["-y", "@schema-ai/mcp"],
+      "env": {}
+    }
+  }
+}

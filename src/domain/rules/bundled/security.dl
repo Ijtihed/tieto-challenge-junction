@@ -1,0 +1,270 @@
+%% ═══════════════════════════════════════════════════════════════
+%% Bundled Datalog rules — security
+%% Per architecture/specs/datalog-lite.md §5.3
+%%
+%% 10 rules catching common security anti-patterns at the
+%% architectural level. These operate on middleware presence,
+%% edge patterns, and node naming conventions.
+%% ═══════════════════════════════════════════════════════════════
+
+% ─── Shared helpers — middleware recognition ────────────────────
+%
+% These enumerate common middleware names set by the extractors.
+% Coverage improves in v1.2+ with string_match (e.g.
+% contains(Name, "auth") instead of exact equality).
+
+% Authentication middleware.
+auth_middleware(M) :- node(M, "middleware", "auth").
+auth_middleware(M) :- node(M, "middleware", "authentication").
+auth_middleware(M) :- node(M, "middleware", "authorize").
+auth_middleware(M) :- node(M, "middleware", "jwt").
+auth_middleware(M) :- node(M, "middleware", "passport").
+auth_middleware(M) :- node(M, "middleware", "requireAuth").
+auth_middleware(M) :- node(M, "middleware", "authGuard").
+auth_middleware(M) :- node(M, "middleware", "verifyToken").
+auth_middleware(M) :- node(M, "middleware", "ensureAuthenticated").
+auth_middleware(M) :- node(M, "middleware", "isAuthenticated").
+
+has_auth(N) :- edge(N, "applies_middleware", M, _), auth_middleware(M).
+
+% Input validation middleware.
+validation_middleware(M) :- node(M, "middleware", "validate").
+validation_middleware(M) :- node(M, "middleware", "validation").
+validation_middleware(M) :- node(M, "middleware", "validateRequest").
+validation_middleware(M) :- node(M, "middleware", "validateBody").
+validation_middleware(M) :- node(M, "middleware", "joi").
+validation_middleware(M) :- node(M, "middleware", "zod").
+validation_middleware(M) :- node(M, "middleware", "celebrate").
+validation_middleware(M) :- node(M, "middleware", "checkSchema").
+
+has_validation(N) :- edge(N, "applies_middleware", M, _), validation_middleware(M).
+
+% CSRF protection middleware.
+csrf_middleware(M) :- node(M, "middleware", "csrf").
+csrf_middleware(M) :- node(M, "middleware", "csurf").
+csrf_middleware(M) :- node(M, "middleware", "csrfProtection").
+csrf_middleware(M) :- node(M, "middleware", "csrfToken").
+csrf_middleware(M) :- node(M, "middleware", "verifyCsrf").
+
+has_csrf(N) :- edge(N, "applies_middleware", M, _), csrf_middleware(M).
+
+% Rate-limiting middleware.
+rate_limit_middleware(M) :- node(M, "middleware", "rateLimit").
+rate_limit_middleware(M) :- node(M, "middleware", "rateLimiter").
+rate_limit_middleware(M) :- node(M, "middleware", "throttle").
+rate_limit_middleware(M) :- node(M, "middleware", "slowDown").
+rate_limit_middleware(M) :- node(M, "middleware", "expressRateLimit").
+
+has_rate_limit(N) :- edge(N, "applies_middleware", M, _), rate_limit_middleware(M).
+
+% Error-handling middleware.
+error_handler_middleware(M) :- node(M, "middleware", "errorHandler").
+error_handler_middleware(M) :- node(M, "middleware", "errorMiddleware").
+error_handler_middleware(M) :- node(M, "middleware", "handleError").
+error_handler_middleware(M) :- node(M, "middleware", "onError").
+error_handler_middleware(M) :- node(M, "middleware", "globalErrorHandler").
+error_handler_middleware(M) :- node(M, "middleware", "exceptionFilter").
+
+has_error_handler(N) :- edge(N, "applies_middleware", M, _), error_handler_middleware(M).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 1 / 10 — auth-on-route
+% ═══════════════════════════════════════════════════════════════
+
+%% id: auth-on-route
+%% severity: error
+%% description: Every route handler must have authentication middleware.
+%% requires: negation (v1.2)
+%%
+
+violation("auth-on-route", N) :-
+  node(N, "route_handler", _),
+  not has_auth(N).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 2 / 10 — no-hardcoded-secret
+% ═══════════════════════════════════════════════════════════════
+
+%% id: no-hardcoded-secret
+%% severity: error
+%% description: No node name should contain credential-like literals.
+%% requires: string_match (v1.2+)
+%%
+
+violation("no-hardcoded-secret", N) :-
+  node(N, _, Name), contains(Name, "password").
+violation("no-hardcoded-secret", N) :-
+  node(N, _, Name), contains(Name, "secret").
+violation("no-hardcoded-secret", N) :-
+  node(N, _, Name), contains(Name, "api_key").
+violation("no-hardcoded-secret", N) :-
+  node(N, _, Name), contains(Name, "apikey").
+violation("no-hardcoded-secret", N) :-
+  node(N, _, Name), contains(Name, "private_key").
+violation("no-hardcoded-secret", N) :-
+  node(N, _, Name), contains(Name, "credentials").
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 3 / 10 — input-validation
+% ═══════════════════════════════════════════════════════════════
+
+%% id: input-validation
+%% severity: warn
+%% description: Route handlers should have input validation middleware.
+%% requires: negation (v1.2)
+%%
+
+violation("input-validation", N) :-
+  node(N, "route_handler", _),
+  not has_validation(N).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 4 / 10 — no-wildcard-cors
+% ═══════════════════════════════════════════════════════════════
+
+%% id: no-wildcard-cors
+%% severity: warn
+%% description: CORS middleware must not use wildcard origin in production.
+%% requires: string_match, node_attr (v1.2+)
+%%
+
+% Full evaluation requires node_attr(M, "cors_origin", Origin) in
+% the EDB. The check below fires when a cors-named middleware is
+% explicitly configured with wildcard origin "*".
+violation("no-wildcard-cors", M) :-
+  node(M, "middleware", Name),
+  contains(Name, "cors"),
+  node_attr(M, "cors_origin", "*").
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 5 / 10 — https-only
+% ═══════════════════════════════════════════════════════════════
+
+%% id: https-only
+%% severity: error
+%% description: External service nodes must use HTTPS, not plain HTTP.
+%% requires: string_match (v1.2+)
+%%
+
+% External nodes whose name/locator contains a plain http:// URL.
+violation("https-only", N) :-
+  node(N, "external", Name),
+  contains(Name, "http://").
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 6 / 10 — no-eval
+% ═══════════════════════════════════════════════════════════════
+
+%% id: no-eval
+%% severity: error
+%% description: No node should call eval or dynamic code execution functions.
+%%
+
+% eval() — arbitrary code execution.
+violation("no-eval", N) :-
+  edge(N, "calls", M, _),
+  node(M, _, "eval").
+
+% Function() constructor — string-to-code.
+violation("no-eval", N) :-
+  edge(N, "calls", M, _),
+  node(M, _, "Function").
+
+% child_process.exec / os.exec — shell injection surface.
+violation("no-eval", N) :-
+  edge(N, "calls", M, _),
+  node(M, _, "exec").
+
+% vm.runInNewContext and similar sandboxed-eval APIs.
+violation("no-eval", N) :-
+  edge(N, "calls", M, _),
+  node(M, _, "runInNewContext").
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 7 / 10 — csrf-protection
+% ═══════════════════════════════════════════════════════════════
+
+%% id: csrf-protection
+%% severity: warn
+%% description: Route handlers should have CSRF protection middleware.
+%% requires: negation (v1.2)
+%%
+
+% Ideally only state-changing (POST/PUT/DELETE/PATCH) handlers are
+% checked. Future: add node_attr(N, "http_method", Method) to the
+% EDB so GET/HEAD/OPTIONS handlers can be excluded.
+violation("csrf-protection", N) :-
+  node(N, "route_handler", _),
+  not has_csrf(N).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 8 / 10 — rate-limit-present
+% ═══════════════════════════════════════════════════════════════
+
+%% id: rate-limit-present
+%% severity: warn
+%% description: Route handlers should have rate-limiting middleware.
+%% requires: negation (v1.2)
+%%
+
+violation("rate-limit-present", N) :-
+  node(N, "route_handler", _),
+  not has_rate_limit(N).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 9 / 10 — no-sql-concat
+% ═══════════════════════════════════════════════════════════════
+
+%% id: no-sql-concat
+%% severity: error
+%% description: Data access nodes must not build queries via string concatenation.
+%% requires: string_match (v1.2+)
+%%
+
+% Direct call to string concat/format within a data_access node.
+violation("no-sql-concat", N) :-
+  node(N, "data_access", _),
+  edge(N, "calls", M, _),
+  node(M, _, "concat").
+
+violation("no-sql-concat", N) :-
+  node(N, "data_access", _),
+  edge(N, "calls", M, _),
+  node(M, _, "format").
+
+% Data access nodes whose name suggests raw query construction.
+violation("no-sql-concat", N) :-
+  node(N, "data_access", Name),
+  contains(Name, "rawQuery").
+
+violation("no-sql-concat", N) :-
+  node(N, "data_access", Name),
+  contains(Name, "raw_query").
+
+violation("no-sql-concat", N) :-
+  node(N, "data_access", Name),
+  contains(Name, "unsafeQuery").
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 10 / 10 — error-handler-present
+% ═══════════════════════════════════════════════════════════════
+
+%% id: error-handler-present
+%% severity: warn
+%% description: Route handlers should have error-handling middleware.
+%% requires: negation (v1.2)
+%%
+
+violation("error-handler-present", N) :-
+  node(N, "route_handler", _),
+  not has_error_handler(N).

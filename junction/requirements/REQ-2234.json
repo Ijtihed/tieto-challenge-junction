@@ -1,0 +1,22 @@
+{
+  "id": "REQ-2234",
+  "title": "Analyzer diagnostics must still be reported when SuppressSourceGeneration = true",
+  "source": "https://github.com/MessagePack-CSharp/MessagePack-CSharp/issues/2234",
+  "branch": "ju26-issue-2234",
+  "kind": "bug",
+  "intent": "Turning off source generation must not silence the analyzer; it regressed in 3.1.1.",
+  "functional": [
+    "Analyzer reports its diagnostics when SuppressSourceGeneration is true",
+    "Generator still emits nothing when SuppressSourceGeneration is true"
+  ],
+  "nonFunctional": [
+    "No change to diagnostics when SuppressSourceGeneration is false",
+    "No public API change"
+  ],
+  "expectedScope": [
+    "src/MessagePack.SourceGenerator/**",
+    "tests/MessagePack.SourceGenerator.Tests/**",
+    "README.md"
+  ],
+  "issueBody": "#### Bug description\n\nThe analyzer does not work if SuppressSourceGeneration = true. This has happened since version 3.1.1. It still worked in 3.1.0."
+}

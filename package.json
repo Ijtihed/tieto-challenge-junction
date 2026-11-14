@@ -1,0 +1,110 @@
+{
+  "name": "@schema-ai/mcp",
+  "version": "0.1.0",
+  "description": "Schema \u2014 MCP-native architecture graph for codebases too large to vibe",
+  "type": "module",
+  "bin": {
+    "schema": "./dist/cli/index.js"
+  },
+  "main": "./dist/mcp/index.js",
+  "types": "./dist/mcp/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/mcp/index.js",
+      "types": "./dist/mcp/index.d.ts"
+    },
+    "./types": {
+      "import": "./dist/domain/types-only.js",
+      "types": "./dist/domain/types-only.d.ts"
+    }
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22 <25"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "lint": "eslint src/ tools/",
+    "lint:dag": "eslint src/ --rule '{\"schema/dag\": \"error\"}'",
+    "lint:vocab": "eslint src/ --rule '{\"schema/no-vocabulary-string-literal\": \"error\"}'",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --test-timeout=30000 --test-force-exit --experimental-strip-types 'src/__tests__/**/*.test.ts'",
+    "check": "npm run typecheck && npm run test",
+    "pkg": "pkg dist/cli/index.js --targets node22-macos-arm64,node22-macos-x64,node22-linux-x64,node22-win-x64 --out-path pkg-out --options max_old_space_size=4096",
+    "serve": "node --experimental-strip-types --no-warnings src/cli/index.ts serve 7475",
+    "build:csharp": "dotnet build tools/csharp-ast -c Release -o tools/csharp-ast/bin/out"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ijtihed/schemav3.git"
+  },
+  "homepage": "https://github.com/Ijtihed/schemav3#readme",
+  "keywords": [
+    "mcp",
+    "architecture",
+    "graph",
+    "schema",
+    "staff-plus",
+    "code-review",
+    "polyglot",
+    "structural-analysis"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.19.18",
+    "@typescript-eslint/parser": "^8.59.3",
+    "@yao-pkg/pkg": "^6.5.0",
+    "eslint": "^10.3.0",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "@reactively/core": "^0.0.8",
+    "better-sqlite3": "^12.10.0",
+    "chokidar": "^5.0.0",
+    "elkjs": "^0.11.1",
+    "ignore": "^7.0.5",
+    "ngraph.graph": "^20.1.2",
+    "ngraph.leiden": "^0.2.0",
+    "ngraph.pagerank": "^2.1.1",
+    "protobufjs": "^8.2.1",
+    "tree-sitter": "^0.21.1",
+    "tree-sitter-go": "^0.21.0",
+    "tree-sitter-java": "^0.21.0",
+    "tree-sitter-python": "^0.21.0",
+    "tree-sitter-ruby": "^0.21.0",
+    "tree-sitter-rust": "^0.21.0",
+    "tree-sitter-typescript": "^0.23.2"
+  },
+  "pkg": {
+    "assets": [
+      "node_modules/better-sqlite3/build/Release/better_sqlite3.node",
+      "node_modules/tree-sitter/build/Release/tree_sitter_runtime.node",
+      "node_modules/tree-sitter-*/build/Release/*.node",
+      "src/wisdom/**/*",
+      "src/domain/persistence/schema.sql"
+    ],
+    "scripts": [
+      "dist/**/*.js"
+    ]
+  },
+  "allowScripts": {
+    "better-sqlite3@12.10.0": true,
+    "esbuild@0.27.7": true,
+    "protobufjs@8.2.1": true,
+    "tree-sitter@0.21.1": true,
+    "tree-sitter-go@0.21.0": true,
+    "tree-sitter-java@0.21.0": true,
+    "tree-sitter-javascript@0.23.1": true,
+    "tree-sitter-python@0.21.0": true,
+    "tree-sitter-ruby@0.21.0": true,
+    "tree-sitter-rust@0.21.0": true,
+    "tree-sitter-typescript@0.23.2": true
+  }
+}

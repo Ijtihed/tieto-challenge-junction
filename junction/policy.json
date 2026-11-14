@@ -1,0 +1,101 @@
+{
+  "repo": "MessagePack-CSharp",
+  "tiers": [
+    {
+      "id": "light",
+      "maxScore": 2,
+      "label": "Light check",
+      "meaning": "Owner skims the receipt and spot-checks one item."
+    },
+    {
+      "id": "focused",
+      "maxScore": 6,
+      "label": "Focused review",
+      "meaning": "Owner reads only the members listed under 'Read these'."
+    },
+    {
+      "id": "full",
+      "maxScore": 1000,
+      "label": "Full read",
+      "meaning": "Owner reads every non-generated change line by line."
+    }
+  ],
+  "areas": [
+    {
+      "id": "security",
+      "name": "Security-sensitive code",
+      "paths": [
+        "src/MessagePack/MessagePackSecurity.cs",
+        "src/MessagePack/Formatters/TypelessFormatter.cs",
+        "src/MessagePack/Resolvers/TypelessContractlessStandardResolver.cs",
+        "src/MessagePack/Resolvers/TypelessObjectResolver.cs",
+        "src/MessagePack/Internal/DynamicAssembly*.cs",
+        "src/MessagePack/Internal/ILGeneratorExtensions.cs",
+        "src/MessagePack/Resolvers/DynamicObjectResolver.cs"
+      ],
+      "weight": 4,
+      "why": "Untrusted-input deserialization (typeless, hash-collision limits) and runtime code emission; a change here can open a remote-code-execution or DoS hole."
+    },
+    {
+      "id": "wire-format",
+      "name": "Wire format",
+      "paths": [
+        "src/MessagePack/MessagePackWriter.cs",
+        "src/MessagePack/MessagePackReader*.cs",
+        "src/MessagePack/Formatters/**",
+        "src/MessagePack/MessagePackCode.cs"
+      ],
+      "weight": 4,
+      "why": "Serialized bytes are a compatibility contract with every client that has ever written data."
+    },
+    {
+      "id": "public-annotations",
+      "name": "Public attributes",
+      "paths": [
+        "src/MessagePack.Annotations/**"
+      ],
+      "weight": 3,
+      "why": "Attributes are public API that users put in their own code; removing or renaming them breaks builds."
+    },
+    {
+      "id": "generator-output",
+      "name": "Generated code templates",
+      "paths": [
+        "src/MessagePack.SourceGenerator/Transforms/**"
+      ],
+      "weight": 2,
+      "why": "Templates change the code generated inside every consuming project."
+    },
+    {
+      "id": "analyzer",
+      "name": "Analyzer and generator logic",
+      "paths": [
+        "src/MessagePack.SourceGenerator/**",
+        "src/MessagePack.Analyzers.CodeFixes/**"
+      ],
+      "weight": 1,
+      "why": "Decides which diagnostics users see and what gets generated."
+    }
+  ],
+  "silencingPatterns": [
+    {
+      "id": "drops-diagnostics",
+      "regex": "\\b(drop|dropped|suppress|suppressed|ignore|ignored|swallow)\\b",
+      "why": "Comment or code says something is being dropped or suppressed."
+    },
+    {
+      "id": "empty-catch",
+      "regex": "catch\\s*(\\([^)]*\\))?\\s*\\{\\s*\\}",
+      "why": "An exception is caught and discarded."
+    },
+    {
+      "id": "conditional-report",
+      "regex": "if\\s*\\(.*\\)\\s*\\{?\\s*report\\(",
+      "why": "A report is now conditional; some reports will no longer happen."
+    }
+  ],
+  "earnedTrust": {
+    "cleanSignoffsToEarn": 3,
+    "note": "An area with this many accepted sign-offs and no escapes drops one review tier. Any escape in an area forces a full read there until trust is re-earned."
+  }
+}

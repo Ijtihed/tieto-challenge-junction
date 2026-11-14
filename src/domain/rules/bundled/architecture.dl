@@ -1,0 +1,322 @@
+%% ═══════════════════════════════════════════════════════════════
+%% Bundled Datalog rules — architecture
+%% Per architecture/specs/datalog-lite.md §5.4
+%%
+%% 12 rules enforcing layered architecture, deployment topology,
+%% cluster boundary constraints, and structural depth limits.
+%% ═══════════════════════════════════════════════════════════════
+
+% ─── Shared helpers ─────────────────────────────────────────────
+
+% All outgoing edges from a node (for god-service counting).
+outgoing_edge(N, T) :- edge(N, _, T, _).
+
+% Services that have at least one deploys_to edge.
+has_deployment(S) :- edge(S, "deploys_to", _, _).
+
+% Deployment nodes that receive at least one deploys_to edge.
+deploys_something(D) :- edge(_, "deploys_to", D, _).
+
+% Whether any deployment node exists in the graph.
+deployment_exists(D) :- node(D, "deployment", _).
+
+% Transitive table writes (shared with dataflow.dl; Datalog
+% deduplicates identical facts if both files are loaded).
+transitively_writes_table(N, T) :- writes_table(N, T).
+transitively_writes_table(N, T) :-
+  edge(N, "calls", M, _),
+  transitively_writes_table(M, T).
+
+% Whether a contract locator contains a version segment.
+has_version_in_path(C) :-
+  contract(C, "openapi", Loc),
+  contains(Loc, "/v1").
+has_version_in_path(C) :-
+  contract(C, "openapi", Loc),
+  contains(Loc, "/v2").
+has_version_in_path(C) :-
+  contract(C, "openapi", Loc),
+  contains(Loc, "/v3").
+has_version_in_path(C) :-
+  contract(C, "openapi", Loc),
+  contains(Loc, "/v4").
+has_version_in_path(C) :-
+  contract(C, "openapi", Loc),
+  contains(Loc, "/v5").
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 1 / 12 — layer-no-upward-dep
+% ═══════════════════════════════════════════════════════════════
+
+%% id: layer-no-upward-dep
+%% severity: error
+%% description: Lower layers must not import upper layers.
+%%
+
+% Service → route_handler (service depends on presentation).
+violation("layer-no-upward-dep", N) :-
+  node(N, "service", _),
+  edge(N, "imports", M, _),
+  node(M, "route_handler", _).
+
+% Data access → service (data depends on domain).
+violation("layer-no-upward-dep", N) :-
+  node(N, "data_access", _),
+  edge(N, "imports", M, _),
+  node(M, "service", _).
+
+% Data access → route_handler (data depends on presentation).
+violation("layer-no-upward-dep", N) :-
+  node(N, "data_access", _),
+  edge(N, "imports", M, _),
+  node(M, "route_handler", _).
+
+% Data access → middleware (data depends on transport concern).
+violation("layer-no-upward-dep", N) :-
+  node(N, "data_access", _),
+  edge(N, "imports", M, _),
+  node(M, "middleware", _).
+
+% Model → route_handler (domain model depends on presentation).
+violation("layer-no-upward-dep", N) :-
+  node(N, "model", _),
+  edge(N, "imports", M, _),
+  node(M, "route_handler", _).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 2 / 12 — layer-no-skip
+% ═══════════════════════════════════════════════════════════════
+
+%% id: layer-no-skip
+%% severity: error
+%% description: Route handlers must not directly access the data layer.
+%%
+
+violation("layer-no-skip", N) :-
+  node(N, "route_handler", _),
+  edge(N, "imports", M, _),
+  node(M, "data_access", _).
+
+violation("layer-no-skip", N) :-
+  node(N, "route_handler", _),
+  edge(N, "calls", M, _),
+  node(M, "data_access", _).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 3 / 12 — middleware-no-data-access
+% ═══════════════════════════════════════════════════════════════
+
+%% id: middleware-no-data-access
+%% severity: error
+%% description: Middleware must not directly depend on the data layer.
+%%
+
+violation("middleware-no-data-access", N) :-
+  node(N, "middleware", _),
+  edge(N, "imports", M, _),
+  node(M, "data_access", _).
+
+violation("middleware-no-data-access", N) :-
+  node(N, "middleware", _),
+  edge(N, "calls", M, _),
+  node(M, "data_access", _).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 4 / 12 — model-no-service-dep
+% ═══════════════════════════════════════════════════════════════
+
+%% id: model-no-service-dep
+%% severity: error
+%% description: Models must not depend on services (inverted dependency).
+%%
+
+violation("model-no-service-dep", N) :-
+  node(N, "model", _),
+  edge(N, "imports", M, _),
+  node(M, "service", _).
+
+violation("model-no-service-dep", N) :-
+  node(N, "model", _),
+  edge(N, "calls", M, _),
+  node(M, "service", _).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 5 / 12 — utility-no-domain-dep
+% ═══════════════════════════════════════════════════════════════
+
+%% id: utility-no-domain-dep
+%% severity: warn
+%% description: Utility modules must not import domain-specific nodes.
+%%
+
+violation("utility-no-domain-dep", N) :-
+  node(N, "utility", _),
+  edge(N, "imports", M, _),
+  node(M, "route_handler", _).
+
+violation("utility-no-domain-dep", N) :-
+  node(N, "utility", _),
+  edge(N, "imports", M, _),
+  node(M, "service", _).
+
+violation("utility-no-domain-dep", N) :-
+  node(N, "utility", _),
+  edge(N, "imports", M, _),
+  node(M, "model", _).
+
+violation("utility-no-domain-dep", N) :-
+  node(N, "utility", _),
+  edge(N, "imports", M, _),
+  node(M, "middleware", _).
+
+violation("utility-no-domain-dep", N) :-
+  node(N, "utility", _),
+  edge(N, "imports", M, _),
+  node(M, "data_access", _).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 6 / 12 — no-god-service
+% ═══════════════════════════════════════════════════════════════
+
+%% id: no-god-service
+%% severity: warn
+%% description: No service node has >15 outgoing edges (god service).
+%% requires: aggregation (v1.2+)
+%%
+
+violation("no-god-service", N) :-
+  node(N, "service", _),
+  C = count : { outgoing_edge(N, _) },
+  C > 15.
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 7 / 12 — deployment-has-service
+% ═══════════════════════════════════════════════════════════════
+
+%% id: deployment-has-service
+%% severity: warn
+%% description: Every deployment node deploys ≥1 service.
+%% requires: negation (v1.2)
+%%
+
+violation("deployment-has-service", N) :-
+  node(N, "deployment", _),
+  not deploys_something(N).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 8 / 12 — service-has-deployment
+% ═══════════════════════════════════════════════════════════════
+
+%% id: service-has-deployment
+%% severity: info
+%% description: Every service is deployed somewhere (when deployments exist).
+%% requires: negation (v1.2)
+%%
+
+% Only fires when the graph has ≥1 deployment node; if no deployment
+% nodes exist, the rule is silent (infrastructure may not be modeled).
+violation("service-has-deployment", N) :-
+  node(N, "service", _),
+  deployment_exists(_),
+  not has_deployment(N).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 9 / 12 — max-module-depth
+% ═══════════════════════════════════════════════════════════════
+
+%% id: max-module-depth
+%% severity: warn
+%% description: No call chain exceeds 10 hops (excessive indirection).
+%% requires: arithmetic (v1.2+)
+%%
+
+% Recursively computes call-chain depth, capped at 11 to bound
+% fixpoint computation on cyclic graphs.
+call_depth(X, Y, 1) :- edge(X, "calls", Y, _).
+call_depth(X, Z, D) :-
+  call_depth(X, Y, D1),
+  edge(Y, "calls", Z, _),
+  D = D1 + 1,
+  D1 < 11.
+
+violation("max-module-depth", N) :-
+  call_depth(N, _, D),
+  D > 10.
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 10 / 12 — cluster-boundary-respect
+% ═══════════════════════════════════════════════════════════════
+
+%% id: cluster-boundary-respect
+%% severity: error
+%% description: Cross-cluster edges must go through contract nodes only.
+%%
+
+% Only implements_contract and consumes_contract are permitted across
+% cluster boundaries. All other edge types are violations.
+
+violation("cluster-boundary-respect", A) :-
+  cluster(C1, A), cluster(C2, B), C1 != C2,
+  edge(A, "calls", B, _).
+
+violation("cluster-boundary-respect", A) :-
+  cluster(C1, A), cluster(C2, B), C1 != C2,
+  edge(A, "imports", B, _).
+
+violation("cluster-boundary-respect", A) :-
+  cluster(C1, A), cluster(C2, B), C1 != C2,
+  edge(A, "registers_route", B, _).
+
+violation("cluster-boundary-respect", A) :-
+  cluster(C1, A), cluster(C2, B), C1 != C2,
+  edge(A, "applies_middleware", B, _).
+
+violation("cluster-boundary-respect", A) :-
+  cluster(C1, A), cluster(C2, B), C1 != C2,
+  edge(A, "deploys_to", B, _).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 11 / 12 — no-shared-mutable-state
+% ═══════════════════════════════════════════════════════════════
+
+%% id: no-shared-mutable-state
+%% severity: error
+%% description: No two services transitively write to the same table.
+%% requires: dataflow (v1.1)
+%%
+
+% Two distinct services whose transitive call-chains both reach a
+% writes_table fact for the same table. This indicates shared mutable
+% state without an explicit coordination contract.
+violation("no-shared-mutable-state", S1) :-
+  node(S1, "service", _),
+  node(S2, "service", _),
+  S1 != S2,
+  transitively_writes_table(S1, T),
+  transitively_writes_table(S2, T).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 12 / 12 — api-versioning
+% ═══════════════════════════════════════════════════════════════
+
+%% id: api-versioning
+%% severity: info
+%% description: REST contracts should include a version segment in the path.
+%% requires: string_match, negation (v1.2+)
+%%
+
+violation("api-versioning", C) :-
+  contract(C, "openapi", _),
+  not has_version_in_path(C).

@@ -1,0 +1,6 @@
+[
+  "NuGet.Packaging@6.8.0#https://github.com/advisories/GHSA-68w7-72jg-6qpp",
+  "NuGet.Packaging@6.8.0#https://github.com/advisories/GHSA-g4vj-cjjj-v7hg",
+  "NuGet.Protocol@6.8.0#https://github.com/advisories/GHSA-g4vj-cjjj-v7hg",
+  "System.Formats.Asn1@6.0.0#https://github.com/advisories/GHSA-447r-wph3-92pm"
+]

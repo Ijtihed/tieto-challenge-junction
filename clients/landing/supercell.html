@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema — Supercell AI Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{margin:0;background:#0a0a0a;color:#f5f5f5;font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden;height:100vh;display:flex;flex-direction:column}
+
+/* Overlay slide — Beat 4: The Numbers */
+.overlay{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;gap:48px}
+.overlay h2{font-size:clamp(28px,4vw,48px);font-weight:800;letter-spacing:-.03em;text-align:center;color:#fff}
+.overlay .sub{font-size:16px;color:#666;text-align:center;max-width:500px}
+
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;max-width:900px;width:100%}
+.metric-card{background:linear-gradient(135deg,#141414,#1a1a1a);border:1px solid #222;border-radius:16px;padding:36px 28px;text-align:center;position:relative;overflow:hidden}
+.metric-card::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:60%;height:2px;border-radius:2px}
+.metric-card:nth-child(1)::before{background:linear-gradient(90deg,transparent,#10B981,transparent)}
+.metric-card:nth-child(2)::before{background:linear-gradient(90deg,transparent,#F59E0B,transparent)}
+.metric-card:nth-child(3)::before{background:linear-gradient(90deg,transparent,#8B5CF6,transparent)}
+
+.metric-value{font-family:'JetBrains Mono',monospace;font-size:clamp(36px,6vw,64px);font-weight:700;letter-spacing:-.04em;line-height:1}
+.metric-card:nth-child(1) .metric-value{color:#10B981}
+.metric-card:nth-child(2) .metric-value{color:#F59E0B}
+.metric-card:nth-child(3) .metric-value{color:#8B5CF6}
+.metric-label{font-size:14px;color:#888;margin-top:12px;font-weight:500}
+.metric-detail{font-family:'JetBrains Mono',monospace;font-size:11px;color:#555;margin-top:8px}
+
+.footer{position:fixed;bottom:0;left:0;right:0;padding:24px 40px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid #1a1a1a;background:rgba(10,10,10,0.9);backdrop-filter:blur(12px)}
+.footer-left{display:flex;align-items:center;gap:16px}
+.footer-left .brand{font-weight:700;font-size:18px;color:#fff;letter-spacing:-.02em}
+.footer-left .tagline{font-size:12px;color:#555}
+.footer-right{display:flex;align-items:center;gap:24px}
+.footer-right a{font-family:'JetBrains Mono',monospace;font-size:12px;color:#888;text-decoration:none;transition:color .15s}
+.footer-right a:hover{color:#fff}
+.install-cmd{font-family:'JetBrains Mono',monospace;font-size:13px;background:#141414;border:1px solid #2a2a2a;border-radius:6px;padding:6px 12px;color:#10B981}
+
+@media(max-width:768px){
+  .metrics{grid-template-columns:1fr;gap:16px}
+  .metric-card{padding:24px 20px}
+}
+</style>
+</head>
+<body>
+
+<div class="overlay">
+  <h2>Benchmark Results</h2>
+  <p class="sub">5 architectural refactoring tasks · polyglot codebase · measured across 3 conditions</p>
+
+  <div class="metrics">
+    <div class="metric-card">
+      <div class="metric-value">38×</div>
+      <div class="metric-label">Token reduction</div>
+      <div class="metric-detail">1.17M → 31k tokens</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value">0</div>
+      <div class="metric-label">Architectural violations</div>
+      <div class="metric-detail">vs 10 without Schema</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value">5/5</div>
+      <div class="metric-label">First-pass success</div>
+      <div class="metric-detail">vs 1/5 without Schema</div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <div class="footer-left">
+    <span class="brand">Schema</span>
+    <span class="tagline">Substrate, not context.</span>
+  </div>
+  <div class="footer-right">
+    <span class="install-cmd">npm i -g @schema-ai/mcp</span>
+    <a href="https://schema.dev">schema.dev</a>
+    <a href="https://github.com/Ijtihed/schemav3">GitHub</a>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,36 @@
+{
+  "$comment": "Per architecture/schema-v3.md §3.12 — the module DAG. ESLint rule schema/dag reads this file. Edges read 'A may import from B'. Any import not listed here is a forbidden cycle.",
+  "layers": [
+    "obs",
+    "domain",
+    "adapters",
+    "session",
+    "extractors",
+    "samplers",
+    "wisdom",
+    "actions",
+    "mcp",
+    "clients"
+  ],
+  "allowed": {
+    "domain":     ["obs"],
+    "adapters":   ["domain", "obs"],
+    "session":    ["domain", "adapters", "obs"],
+    "extractors": ["domain", "adapters", "obs"],
+    "samplers":   ["domain", "adapters", "obs"],
+    "wisdom":     ["domain", "adapters", "obs"],
+    "actions":    ["session", "extractors", "samplers", "wisdom", "domain", "adapters", "obs"],
+    "mcp":        ["actions", "session", "samplers", "wisdom", "domain", "obs"],
+    "clients":    []
+  },
+  "forbidden": [
+    ["mcp", "clients"],
+    ["actions", "mcp"],
+    ["session", "actions"],
+    ["extractors", "session"],
+    ["samplers", "session"],
+    ["wisdom", "session"],
+    ["domain", "adapters"],
+    ["obs", "domain"]
+  ]
+}

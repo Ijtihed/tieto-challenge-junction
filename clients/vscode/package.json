@@ -1,0 +1,81 @@
+{
+  "name": "schema-ai",
+  "displayName": "Schema — Architecture Graph",
+  "description": "Trust layer for vibe coding. Visualize your codebase's architecture graph, enforce rules, and verify AI agent changes.",
+  "version": "0.1.0",
+  "publisher": "schema-ai",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/schema-ai/schema"
+  },
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Other", "Visualization"],
+  "keywords": ["architecture", "graph", "mcp", "ai", "schema"],
+  "icon": "icon.png",
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "schema.openGraph", "title": "Schema: Open Architecture Graph" },
+      { "command": "schema.evaluateRules", "title": "Schema: Evaluate Rules" },
+      { "command": "schema.generatePrSummary", "title": "Schema: Generate PR Summary" },
+      { "command": "schema.showGraphForFile", "title": "Schema: Show Graph for Current File" },
+      { "command": "schema.findCallers", "title": "Schema: Find Callers of Selected Symbol" },
+      { "command": "schema.findCallees", "title": "Schema: Find Callees of Selected Symbol" },
+      { "command": "schema.diffAgainst", "title": "Schema: Diff Against Git Ref" },
+      { "command": "schema.openInDesktop", "title": "Schema: Open in Schema Desktop" },
+      { "command": "schema.addRule", "title": "Schema: Add Architectural Rule" }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "schema",
+          "title": "Schema",
+          "icon": "$(symbol-structure)"
+        }
+      ]
+    },
+    "views": {
+      "schema": [
+        { "id": "schema.summary", "name": "Summary", "type": "tree" },
+        { "id": "schema.rules", "name": "Rules & Violations", "type": "tree" }
+      ]
+    },
+    "configuration": {
+      "title": "Schema",
+      "properties": {
+        "schema.serverCommand": {
+          "type": "string",
+          "default": "npx -y @schema-ai/mcp@latest",
+          "description": "Command to start the Schema MCP server"
+        },
+        "schema.serverPort": {
+          "type": "number",
+          "default": 7474,
+          "description": "Port for the Schema MCP server in HTTP mode"
+        },
+        "schema.autoEvaluateRules": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically evaluate rules on file save"
+        },
+        "schema.allowedPaths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Additional file paths the Schema server is allowed to read/write (workspace root is always allowed)"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "watch": "tsc -p . --watch",
+    "package": "npx vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.5.0"
+  }
+}

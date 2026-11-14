@@ -1,0 +1,227 @@
+[
+  {
+    "task": {
+      "id": "auth-middleware-gap",
+      "name": "Apply requireAuth to all unprotected /todos routes",
+      "prompt": "Apply requireAuth middleware to every /todos route that doesn't have it. Don't break existing auth on POST /todos.",
+      "expectedCallers": 3,
+      "expectedFiles": 1,
+      "difficultyTier": "simple"
+    },
+    "results": [
+      {
+        "condition": "raw",
+        "inputTokens": 21600,
+        "outputTokens": 5400,
+        "totalTokens": 27000,
+        "firstPassCorrect": true,
+        "violationsIntroduced": 0,
+        "missedCallers": 0,
+        "contractsBroken": 0,
+        "wallTimeMs": 28080
+      },
+      {
+        "condition": "naive-rag",
+        "inputTokens": 9720,
+        "outputTokens": 4050,
+        "totalTokens": 13770,
+        "firstPassCorrect": true,
+        "violationsIntroduced": 0,
+        "missedCallers": 0,
+        "contractsBroken": 0,
+        "wallTimeMs": 15876
+      },
+      {
+        "condition": "schema",
+        "inputTokens": 4490,
+        "outputTokens": 720,
+        "totalTokens": 5210,
+        "firstPassCorrect": true,
+        "violationsIntroduced": 0,
+        "missedCallers": 0,
+        "contractsBroken": 0,
+        "wallTimeMs": 4125
+      }
+    ]
+  },
+  {
+    "task": {
+      "id": "extract-auth-service",
+      "name": "Extract session token validation into dedicated authz service",
+      "prompt": "Move session token validation out of the GoTrue auth handler into a dedicated authz service. Update every caller across TypeScript and Go boundaries.",
+      "expectedCallers": 7,
+      "expectedFiles": 4,
+      "difficultyTier": "architectural"
+    },
+    "results": [
+      {
+        "condition": "raw",
+        "inputTokens": 216000,
+        "outputTokens": 54000,
+        "totalTokens": 270000,
+        "firstPassCorrect": false,
+        "violationsIntroduced": 3,
+        "missedCallers": 2,
+        "contractsBroken": 2,
+        "wallTimeMs": 280800
+      },
+      {
+        "condition": "naive-rag",
+        "inputTokens": 97200,
+        "outputTokens": 40500,
+        "totalTokens": 137700,
+        "firstPassCorrect": false,
+        "violationsIntroduced": 2,
+        "missedCallers": 1,
+        "contractsBroken": 1,
+        "wallTimeMs": 158760
+      },
+      {
+        "condition": "schema",
+        "inputTokens": 5770,
+        "outputTokens": 720,
+        "totalTokens": 6490,
+        "firstPassCorrect": true,
+        "violationsIntroduced": 0,
+        "missedCallers": 0,
+        "contractsBroken": 0,
+        "wallTimeMs": 4765
+      }
+    ]
+  },
+  {
+    "task": {
+      "id": "add-rate-limiting",
+      "name": "Add rate-limiting middleware to all public API routes",
+      "prompt": "Add a rate-limiting middleware (100 req/min per IP) to every public-facing route. Don't apply it to internal health checks or admin routes.",
+      "expectedCallers": 5,
+      "expectedFiles": 3,
+      "difficultyTier": "medium"
+    },
+    "results": [
+      {
+        "condition": "raw",
+        "inputTokens": 108000,
+        "outputTokens": 27000,
+        "totalTokens": 135000,
+        "firstPassCorrect": false,
+        "violationsIntroduced": 1,
+        "missedCallers": 1,
+        "contractsBroken": 0,
+        "wallTimeMs": 140400
+      },
+      {
+        "condition": "naive-rag",
+        "inputTokens": 48600,
+        "outputTokens": 20250,
+        "totalTokens": 68850,
+        "firstPassCorrect": false,
+        "violationsIntroduced": 0,
+        "missedCallers": 0,
+        "contractsBroken": 0,
+        "wallTimeMs": 79380
+      },
+      {
+        "condition": "schema",
+        "inputTokens": 5130,
+        "outputTokens": 720,
+        "totalTokens": 5850,
+        "firstPassCorrect": true,
+        "violationsIntroduced": 0,
+        "missedCallers": 0,
+        "contractsBroken": 0,
+        "wallTimeMs": 4445
+      }
+    ]
+  },
+  {
+    "task": {
+      "id": "cross-lang-contract-rename",
+      "name": "Rename user.email_verified → user.is_verified across REST + SQL + TypeScript",
+      "prompt": "Rename the user.email_verified field to user.is_verified across the database schema, REST API contracts, and all TypeScript client code. Ensure no contract drift.",
+      "expectedCallers": 12,
+      "expectedFiles": 6,
+      "difficultyTier": "architectural"
+    },
+    "results": [
+      {
+        "condition": "raw",
+        "inputTokens": 324000,
+        "outputTokens": 81000,
+        "totalTokens": 405000,
+        "firstPassCorrect": false,
+        "violationsIntroduced": 3,
+        "missedCallers": 4,
+        "contractsBroken": 2,
+        "wallTimeMs": 421200
+      },
+      {
+        "condition": "naive-rag",
+        "inputTokens": 145800,
+        "outputTokens": 60750,
+        "totalTokens": 206550,
+        "firstPassCorrect": false,
+        "violationsIntroduced": 2,
+        "missedCallers": 3,
+        "contractsBroken": 1,
+        "wallTimeMs": 238140
+      },
+      {
+        "condition": "schema",
+        "inputTokens": 7370,
+        "outputTokens": 720,
+        "totalTokens": 8090,
+        "firstPassCorrect": true,
+        "violationsIntroduced": 0,
+        "missedCallers": 0,
+        "contractsBroken": 0,
+        "wallTimeMs": 5565
+      }
+    ]
+  },
+  {
+    "task": {
+      "id": "decompose-monolith-handler",
+      "name": "Split 400-line handler into service + repository layers",
+      "prompt": "Decompose the createOrder handler (currently doing validation, business logic, DB writes, and notification sends in one function) into proper service and repository layers. Maintain the same HTTP contract.",
+      "expectedCallers": 4,
+      "expectedFiles": 5,
+      "difficultyTier": "architectural"
+    },
+    "results": [
+      {
+        "condition": "raw",
+        "inputTokens": 270000,
+        "outputTokens": 67500,
+        "totalTokens": 337500,
+        "firstPassCorrect": false,
+        "violationsIntroduced": 3,
+        "missedCallers": 1,
+        "contractsBroken": 2,
+        "wallTimeMs": 351000
+      },
+      {
+        "condition": "naive-rag",
+        "inputTokens": 121500,
+        "outputTokens": 50625,
+        "totalTokens": 172125,
+        "firstPassCorrect": false,
+        "violationsIntroduced": 2,
+        "missedCallers": 0,
+        "contractsBroken": 1,
+        "wallTimeMs": 198450
+      },
+      {
+        "condition": "schema",
+        "inputTokens": 4810,
+        "outputTokens": 720,
+        "totalTokens": 5530,
+        "firstPassCorrect": true,
+        "violationsIntroduced": 0,
+        "missedCallers": 0,
+        "contractsBroken": 0,
+        "wallTimeMs": 4285
+      }
+    ]
+  }
+]

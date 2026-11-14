@@ -1,0 +1,619 @@
+@import "tailwindcss";
+
+/* -----------------------------------------------------------------------
+   Theme tokens — DARK is the default. Light overrides in :root.light.
+   Surface palette lifted from near-black range (Linear / GitHub dimmed
+   convention) instead of pure-black OLED void.
+   ---------------------------------------------------------------------- */
+@theme {
+  --color-surface: #111111;
+  --color-surface-dim: #161616;
+  --color-surface-container: #1C1C1C;
+  --color-surface-container-high: #242424;
+  --color-surface-container-highest: #2E2E2E;
+  --color-surface-bright: #383838;
+
+  --color-on-surface: #E5E2E1;
+  --color-on-surface-variant: #A8A8A8;
+  --color-on-surface-muted: #6B6B6B;
+  --color-on-surface-faint: #4A4A4A;
+
+  --color-outline: #3A3A3A;
+  --color-outline-variant: #2A2A2A;
+
+  /* Node kinds — slightly desaturated for dark-bg comfort */
+  --color-kind-route: #E5AB20;
+  --color-kind-middleware: #B07CE8;
+  --color-kind-service: #5A9BE6;
+  --color-kind-data: #32C48D;
+  --color-kind-model: #E06BA5;
+  --color-kind-external: #8A97A8;
+  --color-kind-utility: #9A9A9A;
+
+  /* Cluster palette */
+  --color-cluster-0: #D4845A;
+  --color-cluster-1: #5AB8B5;
+  --color-cluster-2: #C86A82;
+  --color-cluster-3: #9A8AC8;
+  --color-cluster-4: #6AAF6E;
+  --color-cluster-5: #B8A45E;
+  --color-cluster-6: #7A92C0;
+
+  /* Edge relations */
+  --color-edge-imports: #303030;
+  --color-edge-calls: #3D4D5A;
+  --color-edge-registers: #7A6018;
+  --color-edge-applies: #6A4A88;
+  --color-edge-rest: #7A5A18;
+  --color-edge-grpc: #503580;
+  --color-edge-sql: #1A6B50;
+  --color-edge-data-flow: #2A7A82;
+  --color-edge-control: #404850;
+
+  /* Plan phases */
+  --color-phase-applying: #5A9BE6;
+  --color-phase-testing: #E5AB20;
+  --color-phase-verifying: #B07CE8;
+  --color-phase-pass: #32C48D;
+  --color-phase-fail: #E06060;
+  --color-phase-skip: #6B6B6B;
+
+  /* Graph overlays */
+  --color-flash-new: #32C48D;
+  --color-focus-pulse: #E5AB20;
+  --color-violation: #E06060;
+  --color-uncovered: #6B6B6B;
+
+  --color-schema-accent: #ffffff;
+  --color-schema-muted: #6B6B6B;
+
+  --font-headline: "Inter", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+/* -----------------------------------------------------------------------
+   Theme-private vars (custom CSS classes that aren't Tailwind utilities).
+   ---------------------------------------------------------------------- */
+:root {
+  --schema-page-bg: #111111;
+  --schema-page-fg: #E5E2E1;
+  --schema-grid-line: #1A1A1A;
+  --schema-scroll-thumb: #383838;
+  --schema-scroll-thumb-hover: #555555;
+  --schema-selection-bg: #ffffff;
+  --schema-selection-fg: #111111;
+
+  --schema-node-bg: #161616;
+  --schema-node-bg-hover: #1C1C1C;
+  --schema-node-border: #2A2A2A;
+  --schema-node-border-hover: #4A4A4A;
+
+  --schema-rf-handle-bg: #2A2A2A;
+  --schema-rf-handle-border: #3A3A3A;
+  --schema-rf-controls-border: #2A2A2A;
+  --schema-rf-controls-bg: rgba(17, 17, 17, 0.85);
+  --schema-rf-minimap-mask: rgba(17, 17, 17, 0.7);
+  --schema-rf-minimap-node: #1C1C1C;
+  --schema-rf-minimap-stroke: #2A2A2A;
+  --schema-rf-minimap-bg: #161616;
+}
+
+/* Light theme: opt-in via .light on <html>. */
+:root.light {
+  --color-black: #ffffff;
+  --color-white: #111111;
+
+  --color-neutral-50: #1A1A1A;
+  --color-neutral-100: #2A2A2A;
+  --color-neutral-200: #404040;
+  --color-neutral-300: #525252;
+  --color-neutral-400: #595959;
+  --color-neutral-500: #767676;
+  --color-neutral-600: #8a8a8a;
+  --color-neutral-700: #b3b3b3;
+  --color-neutral-800: #d4d4d4;
+  --color-neutral-900: #e6e6e6;
+  --color-neutral-950: #f3f3f3;
+
+  --color-surface: #ffffff;
+  --color-surface-dim: #fafafa;
+  --color-surface-container: #f5f5f5;
+  --color-surface-container-high: #f0f0f0;
+  --color-surface-container-highest: #e5e5e5;
+  --color-surface-bright: #d4d4d4;
+
+  --color-on-surface: #111111;
+  --color-on-surface-variant: #404040;
+  --color-on-surface-muted: #595959;
+  --color-on-surface-faint: #767676;
+
+  --color-outline: #d4d4d4;
+  --color-outline-variant: #e5e5e5;
+
+  --color-kind-route: #b45309;
+  --color-kind-middleware: #7c3aed;
+  --color-kind-service: #1d4ed8;
+  --color-kind-data: #047857;
+  --color-kind-model: #be185d;
+  --color-kind-external: #475569;
+  --color-kind-utility: #525252;
+
+  --color-cluster-0: #A86844;
+  --color-cluster-1: #488F8D;
+  --color-cluster-2: #A05468;
+  --color-cluster-3: #7B6FA0;
+  --color-cluster-4: #548C58;
+  --color-cluster-5: #93834B;
+  --color-cluster-6: #617498;
+
+  --color-edge-imports: #d4d4d4;
+  --color-edge-calls: #6B7280;
+  --color-edge-registers: #b45309;
+  --color-edge-applies: #7c3aed;
+  --color-edge-rest: #d97706;
+  --color-edge-grpc: #7c3aed;
+  --color-edge-sql: #059669;
+  --color-edge-data-flow: #0891b2;
+  --color-edge-control: #4B5563;
+
+  --color-phase-applying: #1d4ed8;
+  --color-phase-testing: #b45309;
+  --color-phase-verifying: #7c3aed;
+  --color-phase-pass: #047857;
+  --color-phase-fail: #b91c1c;
+  --color-phase-skip: #a3a3a3;
+
+  --color-flash-new: #047857;
+  --color-focus-pulse: #b45309;
+  --color-violation: #b91c1c;
+  --color-uncovered: #a3a3a3;
+
+  --color-schema-accent: #111111;
+  --color-schema-muted: #d4d4d4;
+
+  --schema-page-bg: #ffffff;
+  --schema-page-fg: #111111;
+  --schema-grid-line: #ececec;
+  --schema-scroll-thumb: #c0c0c0;
+  --schema-scroll-thumb-hover: #909090;
+  --schema-selection-bg: #111111;
+  --schema-selection-fg: #ffffff;
+
+  --schema-node-bg: #ffffff;
+  --schema-node-bg-hover: #fafafa;
+  --schema-node-border: #d4d4d4;
+  --schema-node-border-hover: #737373;
+
+  --schema-rf-handle-bg: #d4d4d4;
+  --schema-rf-handle-border: #a3a3a3;
+  --schema-rf-controls-border: #d4d4d4;
+  --schema-rf-controls-bg: rgba(255, 255, 255, 0.85);
+  --schema-rf-minimap-mask: rgba(255, 255, 255, 0.7);
+  --schema-rf-minimap-node: #e5e5e5;
+  --schema-rf-minimap-stroke: #a3a3a3;
+  --schema-rf-minimap-bg: #fafafa;
+}
+
+.schema-dark-pin {
+  --color-white: #ffffff;
+  --color-black: #111111;
+  --color-neutral-50: #fafafa;
+  --color-neutral-100: #f5f5f5;
+  --color-neutral-200: #e5e5e5;
+  --color-neutral-300: #d4d4d4;
+  --color-neutral-400: #a3a3a3;
+  --color-neutral-500: #737373;
+  --color-neutral-600: #525252;
+  --color-neutral-700: #404040;
+  --color-neutral-800: #2A2A2A;
+  --color-neutral-900: #1C1C1C;
+  --color-neutral-950: #111111;
+  --schema-page-bg: #111111;
+  --schema-page-fg: #ffffff;
+  --schema-node-bg: #161616;
+  --schema-node-bg-hover: #1C1C1C;
+  --schema-node-border: #2A2A2A;
+  --schema-node-border-hover: #4A4A4A;
+  --schema-grid-line: #1A1A1A;
+  --schema-rf-handle-bg: #2A2A2A;
+  --schema-rf-handle-border: #3A3A3A;
+  --schema-rf-controls-border: #2A2A2A;
+  --schema-rf-controls-bg: rgba(17, 17, 17, 0.85);
+  --schema-rf-minimap-mask: rgba(17, 17, 17, 0.7);
+  --schema-rf-minimap-node: #2A2A2A;
+  --schema-rf-minimap-stroke: #3A3A3A;
+  --schema-rf-minimap-bg: #161616;
+  color: #ffffff;
+  background: #111111;
+}
+
+@layer base {
+  body {
+    background-color: var(--schema-page-bg);
+    color: var(--schema-page-fg);
+    font-family: "Inter", sans-serif;
+    transition: background-color 150ms ease, color 150ms ease;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background: var(--schema-selection-bg);
+    color: var(--schema-selection-fg);
+  }
+
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--schema-scroll-thumb);
+    border-radius: 2px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--schema-scroll-thumb-hover);
+  }
+}
+
+@layer utilities {
+  /* ---- Typography tokens ---- */
+  .schema-headline-lg { font-size: 1.5rem; line-height: 2rem; font-weight: 600; letter-spacing: -0.02em; }
+  .schema-headline-md { font-size: 1.125rem; line-height: 1.5rem; font-weight: 600; letter-spacing: -0.01em; }
+  .schema-body-lg { font-size: 1rem; line-height: 1.5rem; font-weight: 400; }
+  .schema-body-md { font-size: 0.875rem; line-height: 1.25rem; font-weight: 400; }
+  .schema-body-sm { font-size: 0.75rem; line-height: 1rem; font-weight: 400; }
+  .schema-label { font-size: 0.6875rem; line-height: 1rem; font-weight: 500; letter-spacing: 0.02em; }
+  .schema-code-md { font-family: "JetBrains Mono", monospace; font-size: 0.8125rem; line-height: 1.125rem; font-weight: 400; }
+  .schema-code-sm { font-family: "JetBrains Mono", monospace; font-size: 0.6875rem; line-height: 0.875rem; font-weight: 400; }
+
+  .schema-node {
+    background: var(--schema-node-bg);
+    border: 1px solid var(--schema-node-border);
+    border-radius: 8px;
+    color: var(--color-on-surface);
+    letter-spacing: -0.01em;
+    transition:
+      border-color 150ms cubic-bezier(0.22, 1, 0.36, 1),
+      background-color 150ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 300ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 200ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+    overflow: hidden;
+    z-index: 5;
+    box-shadow:
+      0 1px 4px rgba(0, 0, 0, 0.28),
+      0 0 0 0 transparent;
+    backdrop-filter: blur(2px);
+  }
+
+  .schema-node::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: var(--node-stripe, transparent);
+    border-radius: 6px 0 0 6px;
+    transition: background 150ms;
+  }
+
+  .schema-node:hover {
+    border-color: var(--schema-node-border-hover);
+    background: var(--schema-node-bg-hover);
+    transform: scale(1.02);
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.36),
+      0 0 0 1px var(--schema-node-border-hover);
+  }
+
+  .schema-node-selected {
+    border-color: var(--color-on-surface) !important;
+    box-shadow:
+      0 0 0 1px var(--color-on-surface),
+      0 4px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  .schema-node-focus {
+    border-color: var(--color-focus-pulse) !important;
+    box-shadow:
+      0 0 0 2px var(--color-focus-pulse),
+      0 0 20px rgba(229, 171, 32, 0.15);
+    animation: schema-pulse 2s ease-in-out infinite;
+  }
+
+  .schema-node-new {
+    border-color: var(--color-flash-new) !important;
+    box-shadow:
+      0 0 0 1px var(--color-flash-new),
+      0 0 16px rgba(50, 196, 141, 0.25);
+    animation: schema-fade-in 300ms ease-out;
+  }
+
+  .schema-node-diff-added {
+    border-color: var(--color-flash-new) !important;
+    box-shadow:
+      0 0 0 1px var(--color-flash-new),
+      0 0 12px rgba(50, 196, 141, 0.2);
+  }
+
+  .schema-node-diff-modified {
+    border-color: var(--color-phase-testing) !important;
+    box-shadow:
+      0 0 0 1px var(--color-phase-testing),
+      0 0 12px rgba(229, 171, 32, 0.15);
+  }
+
+  .schema-node-violation {
+    border-color: var(--color-violation) !important;
+    box-shadow:
+      0 0 0 1px var(--color-violation),
+      0 0 16px rgba(224, 96, 96, 0.2);
+  }
+
+  .schema-node-pinned {
+    position: relative;
+    box-shadow: 0 0 0 1px var(--color-schema-accent);
+  }
+  .schema-node-pinned::after {
+    content: "";
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-schema-accent);
+    pointer-events: none;
+  }
+
+  .schema-node-uncovered {
+    opacity: 0.4;
+  }
+
+  .schema-node-dim {
+    opacity: 0.3;
+    filter: saturate(0) brightness(0.6);
+  }
+  .schema-node-dim * {
+    color: var(--color-on-surface-faint) !important;
+  }
+  /* Side stripe should also fade in dim state — otherwise the bright
+     colored left-bar sticks out against the desaturated body. */
+  .schema-node-dim::before {
+    background: var(--color-outline-variant) !important;
+    opacity: 0.5;
+  }
+
+  .schema-node-hover-target {
+    border-color: var(--color-on-surface-variant) !important;
+    box-shadow: 0 0 0 1px var(--color-on-surface-variant);
+  }
+
+  .schema-node-locked::after {
+    content: "";
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    width: 4px;
+    height: 4px;
+    border-radius: 1px;
+    background: var(--color-on-surface-faint);
+    pointer-events: none;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes schema-fade-in {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* View-change: edges draw in from source to target AFTER nodes are
+     fully visible. Wrapper opacity fades 0→1 over 500ms; edges start
+     appearing at 520ms (just after fade completes) and draw in over
+     750ms for a deliberate, paced effect. Total animation: ~1.3s. */
+  .schema-view-entering .react-flow__edge-path {
+    stroke-dasharray: 4000;
+    animation: schema-edge-draw 750ms cubic-bezier(0.25, 0.1, 0.25, 1) 520ms both;
+  }
+
+  /* Keep edges hidden until the draw animation starts so no stub flashes
+     during the node fade-in. */
+  .schema-view-entering .react-flow__edge {
+    opacity: 0;
+    animation: schema-edge-reveal 1ms linear 520ms forwards;
+  }
+
+  /* Markers (arrowheads) should appear only after the edge has drawn
+     mostly to its destination — they're separate SVG <marker> elements. */
+  .schema-view-entering .react-flow__arrowhead,
+  .schema-view-entering marker {
+    opacity: 0;
+    animation: schema-edge-reveal 1ms linear 1180ms forwards;
+  }
+
+  @keyframes schema-edge-reveal {
+    to { opacity: 1; }
+  }
+
+  @keyframes schema-edge-draw {
+    from { stroke-dashoffset: 4000; }
+    to   { stroke-dashoffset: 0; }
+  }
+
+  @keyframes schema-pulse {
+    0%, 100% { box-shadow: 0 0 0 2px var(--color-focus-pulse), 0 0 20px rgba(229, 171, 32, 0.15); }
+    50% { box-shadow: 0 0 0 2px var(--color-focus-pulse), 0 0 28px rgba(229, 171, 32, 0.25); }
+  }
+
+  @keyframes schema-spin {
+    to { transform: rotate(360deg); }
+  }
+  .schema-spin {
+    animation: schema-spin 0.9s linear infinite;
+  }
+
+  @keyframes schema-dash {
+    to { stroke-dashoffset: -24; }
+  }
+
+  .schema-edge-ghost {
+    stroke-dasharray: 4 4;
+    animation: schema-dash 3s linear infinite;
+  }
+
+  @keyframes schema-blink {
+    0%, 60%, 100% { opacity: 1; }
+    61%, 99% { opacity: 0; }
+  }
+  .schema-cursor::after {
+    content: "▋";
+    animation: schema-blink 1s steps(1) infinite;
+    margin-left: 2px;
+    color: var(--color-on-surface-muted);
+  }
+}
+
+/* React Flow visual reset + Studio polish */
+.react-flow__renderer,
+.react-flow__pane {
+  background: transparent;
+}
+.react-flow__edge-path {
+  transition: stroke 300ms cubic-bezier(0.22,1,0.36,1),
+              stroke-width 300ms cubic-bezier(0.22,1,0.36,1),
+              opacity 300ms cubic-bezier(0.22,1,0.36,1),
+              filter 300ms cubic-bezier(0.22,1,0.36,1);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.react-flow__edge {
+  cursor: pointer;
+}
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke-width: 2.5 !important;
+  opacity: 1 !important;
+  filter: brightness(2) drop-shadow(0 0 3px currentColor);
+}
+/* Cross-cluster edges are subtler than intra-cluster */
+.react-flow__edge[data-cross-cluster="true"] .react-flow__edge-path {
+  opacity: 0.25;
+  stroke-dasharray: 4 4;
+}
+
+/* Smooth seamless streaming. All animated dash patterns are authored
+   with the same period (sum of dash + gap = 20), so a -20 offset cycle
+   wraps perfectly — no visible jump at the loop boundary. */
+.react-flow__edge.animated .react-flow__edge-path {
+  animation: schema-edge-stream 0.9s linear infinite !important;
+}
+@keyframes schema-edge-stream {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: -20; }
+}
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke-width: 2 !important;
+  stroke: var(--color-on-surface) !important;
+  opacity: 1 !important;
+}
+.react-flow__edge-interaction {
+  stroke-width: 20px;
+}
+.react-flow__edgelabel-renderer {
+  pointer-events: none;
+  z-index: 0 !important;
+}
+.react-flow__edge-textwrapper {
+  pointer-events: none;
+}
+.react-flow__handle {
+  background: transparent;
+  border: none;
+  width: 2px;
+  height: 2px;
+  opacity: 0;
+  pointer-events: none;
+}
+.react-flow__attribution {
+  display: none !important;
+}
+.react-flow__minimap {
+  background: var(--schema-rf-minimap-bg) !important;
+  border: 1px solid var(--schema-rf-controls-border) !important;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+.react-flow__controls {
+  border-radius: 8px !important;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid var(--schema-rf-controls-border) !important;
+}
+.react-flow__controls-button {
+  background: var(--schema-rf-controls-bg) !important;
+  border-bottom: 1px solid var(--schema-rf-controls-border) !important;
+  color: var(--color-on-surface-variant) !important;
+  fill: var(--color-on-surface-variant) !important;
+  transition: background 150ms ease, color 150ms ease;
+}
+.react-flow__controls-button:hover {
+  background: var(--schema-node-bg-hover) !important;
+  color: var(--color-on-surface) !important;
+  fill: var(--color-on-surface) !important;
+}
+
+  /* Skeleton pulse while layout is computing (large graphs). */
+  @keyframes schema-skeleton-pulse {
+    0%, 100% { opacity: 0.06; }
+    50% { opacity: 0.12; }
+  }
+  .schema-layout-pending .react-flow__renderer {
+    animation: schema-skeleton-pulse 1.2s ease-in-out infinite;
+  }
+
+  /* Step 10a: skeleton component library. Two shimmer
+     intensities so consumers can pick the right contrast:
+       - `.schema-skeleton` — standard pulse (text / cards /
+         panels)
+       - `.schema-skeleton-soft` — gentler pulse (canvas
+         cluster placeholders that sit behind the centre
+         spinner; should not steal focus from it)
+     Both share the same animation timing so multiple
+     skeletons on the same screen are visually in sync. */
+  @keyframes schema-skeleton-shimmer {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.7; }
+  }
+  @keyframes schema-skeleton-shimmer-soft {
+    0%, 100% { opacity: 0.15; }
+    50% { opacity: 0.30; }
+  }
+  .schema-skeleton {
+    animation: schema-skeleton-shimmer 1.5s ease-in-out infinite;
+    will-change: opacity;
+  }
+  .schema-skeleton-soft {
+    animation: schema-skeleton-shimmer-soft 1.5s ease-in-out infinite;
+    will-change: opacity;
+  }
+
+@media (prefers-reduced-motion: reduce) {
+  .schema-edge-ghost { animation: none; }
+  .schema-cursor::after { animation: none; opacity: 1; }
+  .schema-node-focus { animation: none; }
+  .schema-node-new { animation: none; }
+  /* Step 10a: skeletons must respect reduced-motion too —
+     hold at the visible midpoint (matches the WCAG 2.3.3
+     "avoid pulsing > 3Hz" rule + makes Playwright snapshots
+     stable when forcedReducedMotion is set). */
+  .schema-skeleton { animation: none; opacity: 0.55; }
+  .schema-skeleton-soft { animation: none; opacity: 0.22; }
+}

@@ -1,0 +1,602 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "metadata": {
+    "timestamp": "2026-11-14T07:34:23.488Z",
+    "component": {
+      "type": "application",
+      "name": "MessagePack-CSharp",
+      "version": "c0050e964831f3fa3be7aaf0420a32488ccb6d9e"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "CSharpIsNullAnalyzer",
+      "version": "0.1.593",
+      "purl": "pkg:nuget/CSharpIsNullAnalyzer@0.1.593"
+    },
+    {
+      "type": "library",
+      "name": "DiffPlex",
+      "version": "1.7.2",
+      "purl": "pkg:nuget/DiffPlex@1.7.2"
+    },
+    {
+      "type": "library",
+      "name": "FluentAssertions",
+      "version": "7.0.0",
+      "purl": "pkg:nuget/FluentAssertions@7.0.0"
+    },
+    {
+      "type": "library",
+      "name": "Humanizer.Core",
+      "version": "2.14.1",
+      "purl": "pkg:nuget/Humanizer.Core@2.14.1"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.CodeAnalysis.Analyzer.Testing",
+      "version": "1.1.2",
+      "purl": "pkg:nuget/Microsoft.CodeAnalysis.Analyzer.Testing@1.1.2"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.CodeAnalysis.Analyzers",
+      "version": "3.3.4",
+      "purl": "pkg:nuget/Microsoft.CodeAnalysis.Analyzers@3.3.4"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.CodeAnalysis.CodeFix.Testing",
+      "version": "1.1.2",
+      "purl": "pkg:nuget/Microsoft.CodeAnalysis.CodeFix.Testing@1.1.2"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.CodeAnalysis.Common",
+      "version": "4.12.0",
+      "purl": "pkg:nuget/Microsoft.CodeAnalysis.Common@4.12.0"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.CodeAnalysis.CSharp",
+      "version": "4.12.0",
+      "purl": "pkg:nuget/Microsoft.CodeAnalysis.CSharp@4.12.0"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.CodeAnalysis.CSharp.CodeFix.Testing",
+      "version": "1.1.2",
+      "purl": "pkg:nuget/Microsoft.CodeAnalysis.CSharp.CodeFix.Testing@1.1.2"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.CodeAnalysis.CSharp.CodeFix.Testing.XUnit",
+      "version": "1.1.2",
+      "purl": "pkg:nuget/Microsoft.CodeAnalysis.CSharp.CodeFix.Testing.XUnit@1.1.2"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing",
+      "version": "1.1.2",
+      "purl": "pkg:nuget/Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing@1.1.2"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing.XUnit",
+      "version": "1.1.2",
+      "purl": "pkg:nuget/Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing.XUnit@1.1.2"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.CodeAnalysis.CSharp.Workspaces",
+      "version": "4.12.0",
+      "purl": "pkg:nuget/Microsoft.CodeAnalysis.CSharp.Workspaces@4.12.0"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.CodeAnalysis.SourceGenerators.Testing",
+      "version": "1.1.2",
+      "purl": "pkg:nuget/Microsoft.CodeAnalysis.SourceGenerators.Testing@1.1.2"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.CodeAnalysis.Testing.Verifiers.XUnit",
+      "version": "1.1.2",
+      "purl": "pkg:nuget/Microsoft.CodeAnalysis.Testing.Verifiers.XUnit@1.1.2"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.CodeAnalysis.VisualBasic",
+      "version": "4.12.0",
+      "purl": "pkg:nuget/Microsoft.CodeAnalysis.VisualBasic@4.12.0"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.CodeAnalysis.VisualBasic.CodeFix.Testing",
+      "version": "1.1.2",
+      "purl": "pkg:nuget/Microsoft.CodeAnalysis.VisualBasic.CodeFix.Testing@1.1.2"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.CodeAnalysis.VisualBasic.CodeFix.Testing.XUnit",
+      "version": "1.1.2",
+      "purl": "pkg:nuget/Microsoft.CodeAnalysis.VisualBasic.CodeFix.Testing.XUnit@1.1.2"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.CodeAnalysis.VisualBasic.Workspaces",
+      "version": "4.12.0",
+      "purl": "pkg:nuget/Microsoft.CodeAnalysis.VisualBasic.Workspaces@4.12.0"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.CodeAnalysis.Workspaces.Common",
+      "version": "4.12.0",
+      "purl": "pkg:nuget/Microsoft.CodeAnalysis.Workspaces.Common@4.12.0"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.CodeCoverage",
+      "version": "17.12.0",
+      "purl": "pkg:nuget/Microsoft.CodeCoverage@17.12.0"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.NET.StringTools",
+      "version": "17.11.4",
+      "purl": "pkg:nuget/Microsoft.NET.StringTools@17.11.4"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.NET.Test.Sdk",
+      "version": "17.12.0",
+      "purl": "pkg:nuget/Microsoft.NET.Test.Sdk@17.12.0"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.NETCore.Platforms",
+      "version": "1.1.0",
+      "purl": "pkg:nuget/Microsoft.NETCore.Platforms@1.1.0"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.NETCore.Targets",
+      "version": "1.1.0",
+      "purl": "pkg:nuget/Microsoft.NETCore.Targets@1.1.0"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.TestPlatform.ObjectModel",
+      "version": "17.12.0",
+      "purl": "pkg:nuget/Microsoft.TestPlatform.ObjectModel@17.12.0"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.TestPlatform.TestHost",
+      "version": "17.12.0",
+      "purl": "pkg:nuget/Microsoft.TestPlatform.TestHost@17.12.0"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.VisualStudio.Composition",
+      "version": "16.1.8",
+      "purl": "pkg:nuget/Microsoft.VisualStudio.Composition@16.1.8"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.VisualStudio.Composition.NetFxAttributes",
+      "version": "16.1.8",
+      "purl": "pkg:nuget/Microsoft.VisualStudio.Composition.NetFxAttributes@16.1.8"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.VisualStudio.Threading",
+      "version": "17.10.48",
+      "purl": "pkg:nuget/Microsoft.VisualStudio.Threading@17.10.48"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.VisualStudio.Threading.Analyzers",
+      "version": "17.10.48",
+      "purl": "pkg:nuget/Microsoft.VisualStudio.Threading.Analyzers@17.10.48"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.VisualStudio.Validation",
+      "version": "17.8.8",
+      "purl": "pkg:nuget/Microsoft.VisualStudio.Validation@17.8.8"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.Win32.SystemEvents",
+      "version": "6.0.0",
+      "purl": "pkg:nuget/Microsoft.Win32.SystemEvents@6.0.0"
+    },
+    {
+      "type": "library",
+      "name": "Nerdbank.GitVersioning",
+      "version": "3.6.143",
+      "purl": "pkg:nuget/Nerdbank.GitVersioning@3.6.143"
+    },
+    {
+      "type": "library",
+      "name": "Nerdbank.Streams",
+      "version": "2.11.79",
+      "purl": "pkg:nuget/Nerdbank.Streams@2.11.79"
+    },
+    {
+      "type": "library",
+      "name": "Newtonsoft.Json",
+      "version": "13.0.3",
+      "purl": "pkg:nuget/Newtonsoft.Json@13.0.3"
+    },
+    {
+      "type": "library",
+      "name": "NuGet.Common",
+      "version": "6.8.0",
+      "purl": "pkg:nuget/NuGet.Common@6.8.0"
+    },
+    {
+      "type": "library",
+      "name": "NuGet.Configuration",
+      "version": "6.8.0",
+      "purl": "pkg:nuget/NuGet.Configuration@6.8.0"
+    },
+    {
+      "type": "library",
+      "name": "NuGet.Frameworks",
+      "version": "6.8.0",
+      "purl": "pkg:nuget/NuGet.Frameworks@6.8.0"
+    },
+    {
+      "type": "library",
+      "name": "NuGet.Packaging",
+      "version": "6.8.0",
+      "purl": "pkg:nuget/NuGet.Packaging@6.8.0"
+    },
+    {
+      "type": "library",
+      "name": "NuGet.Protocol",
+      "version": "6.8.0",
+      "purl": "pkg:nuget/NuGet.Protocol@6.8.0"
+    },
+    {
+      "type": "library",
+      "name": "NuGet.Resolver",
+      "version": "6.3.4",
+      "purl": "pkg:nuget/NuGet.Resolver@6.3.4"
+    },
+    {
+      "type": "library",
+      "name": "NuGet.Versioning",
+      "version": "6.8.0",
+      "purl": "pkg:nuget/NuGet.Versioning@6.8.0"
+    },
+    {
+      "type": "library",
+      "name": "Nullable",
+      "version": "1.3.1",
+      "purl": "pkg:nuget/Nullable@1.3.1"
+    },
+    {
+      "type": "library",
+      "name": "StyleCop.Analyzers.Unstable",
+      "version": "1.2.0.556",
+      "purl": "pkg:nuget/StyleCop.Analyzers.Unstable@1.2.0.556"
+    },
+    {
+      "type": "library",
+      "name": "System.Collections",
+      "version": "4.0.11",
+      "purl": "pkg:nuget/System.Collections@4.0.11"
+    },
+    {
+      "type": "library",
+      "name": "System.Collections.Concurrent",
+      "version": "4.0.12",
+      "purl": "pkg:nuget/System.Collections.Concurrent@4.0.12"
+    },
+    {
+      "type": "library",
+      "name": "System.Collections.Immutable",
+      "version": "8.0.0",
+      "purl": "pkg:nuget/System.Collections.Immutable@8.0.0"
+    },
+    {
+      "type": "library",
+      "name": "System.ComponentModel.Composition",
+      "version": "4.5.0",
+      "purl": "pkg:nuget/System.ComponentModel.Composition@4.5.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Composition",
+      "version": "8.0.0",
+      "purl": "pkg:nuget/System.Composition@8.0.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Composition.AttributedModel",
+      "version": "8.0.0",
+      "purl": "pkg:nuget/System.Composition.AttributedModel@8.0.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Composition.Convention",
+      "version": "8.0.0",
+      "purl": "pkg:nuget/System.Composition.Convention@8.0.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Composition.Hosting",
+      "version": "8.0.0",
+      "purl": "pkg:nuget/System.Composition.Hosting@8.0.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Composition.Runtime",
+      "version": "8.0.0",
+      "purl": "pkg:nuget/System.Composition.Runtime@8.0.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Composition.TypedParts",
+      "version": "8.0.0",
+      "purl": "pkg:nuget/System.Composition.TypedParts@8.0.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Configuration.ConfigurationManager",
+      "version": "6.0.0",
+      "purl": "pkg:nuget/System.Configuration.ConfigurationManager@6.0.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Diagnostics.Debug",
+      "version": "4.0.11",
+      "purl": "pkg:nuget/System.Diagnostics.Debug@4.0.11"
+    },
+    {
+      "type": "library",
+      "name": "System.Diagnostics.Tracing",
+      "version": "4.1.0",
+      "purl": "pkg:nuget/System.Diagnostics.Tracing@4.1.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Drawing.Common",
+      "version": "6.0.0",
+      "purl": "pkg:nuget/System.Drawing.Common@6.0.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Dynamic.Runtime",
+      "version": "4.0.11",
+      "purl": "pkg:nuget/System.Dynamic.Runtime@4.0.11"
+    },
+    {
+      "type": "library",
+      "name": "System.Formats.Asn1",
+      "version": "6.0.0",
+      "purl": "pkg:nuget/System.Formats.Asn1@6.0.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Globalization",
+      "version": "4.0.11",
+      "purl": "pkg:nuget/System.Globalization@4.0.11"
+    },
+    {
+      "type": "library",
+      "name": "System.IO",
+      "version": "4.3.0",
+      "purl": "pkg:nuget/System.IO@4.3.0"
+    },
+    {
+      "type": "library",
+      "name": "System.IO.Pipelines",
+      "version": "8.0.0",
+      "purl": "pkg:nuget/System.IO.Pipelines@8.0.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Linq",
+      "version": "4.1.0",
+      "purl": "pkg:nuget/System.Linq@4.1.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Linq.Expressions",
+      "version": "4.1.0",
+      "purl": "pkg:nuget/System.Linq.Expressions@4.1.0"
+    },
+    {
+      "type": "library",
+      "name": "System.ObjectModel",
+      "version": "4.0.12",
+      "purl": "pkg:nuget/System.ObjectModel@4.0.12"
+    },
+    {
+      "type": "library",
+      "name": "System.Reflection",
+      "version": "4.3.0",
+      "purl": "pkg:nuget/System.Reflection@4.3.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Reflection.Emit",
+      "version": "4.3.0",
+      "purl": "pkg:nuget/System.Reflection.Emit@4.3.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Reflection.Emit.ILGeneration",
+      "version": "4.3.0",
+      "purl": "pkg:nuget/System.Reflection.Emit.ILGeneration@4.3.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Reflection.Emit.Lightweight",
+      "version": "4.0.1",
+      "purl": "pkg:nuget/System.Reflection.Emit.Lightweight@4.0.1"
+    },
+    {
+      "type": "library",
+      "name": "System.Reflection.Extensions",
+      "version": "4.0.1",
+      "purl": "pkg:nuget/System.Reflection.Extensions@4.0.1"
+    },
+    {
+      "type": "library",
+      "name": "System.Reflection.Metadata",
+      "version": "8.0.0",
+      "purl": "pkg:nuget/System.Reflection.Metadata@8.0.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Reflection.Primitives",
+      "version": "4.3.0",
+      "purl": "pkg:nuget/System.Reflection.Primitives@4.3.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Reflection.TypeExtensions",
+      "version": "4.3.0",
+      "purl": "pkg:nuget/System.Reflection.TypeExtensions@4.3.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Resources.ResourceManager",
+      "version": "4.0.1",
+      "purl": "pkg:nuget/System.Resources.ResourceManager@4.0.1"
+    },
+    {
+      "type": "library",
+      "name": "System.Runtime",
+      "version": "4.3.0",
+      "purl": "pkg:nuget/System.Runtime@4.3.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Runtime.Extensions",
+      "version": "4.1.0",
+      "purl": "pkg:nuget/System.Runtime.Extensions@4.1.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Security.AccessControl",
+      "version": "6.0.0",
+      "purl": "pkg:nuget/System.Security.AccessControl@6.0.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Security.Cryptography.Pkcs",
+      "version": "6.0.4",
+      "purl": "pkg:nuget/System.Security.Cryptography.Pkcs@6.0.4"
+    },
+    {
+      "type": "library",
+      "name": "System.Security.Cryptography.ProtectedData",
+      "version": "6.0.0",
+      "purl": "pkg:nuget/System.Security.Cryptography.ProtectedData@6.0.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Security.Permissions",
+      "version": "6.0.0",
+      "purl": "pkg:nuget/System.Security.Permissions@6.0.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Text.Encoding",
+      "version": "4.3.0",
+      "purl": "pkg:nuget/System.Text.Encoding@4.3.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Threading",
+      "version": "4.0.11",
+      "purl": "pkg:nuget/System.Threading@4.0.11"
+    },
+    {
+      "type": "library",
+      "name": "System.Threading.Channels",
+      "version": "7.0.0",
+      "purl": "pkg:nuget/System.Threading.Channels@7.0.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Threading.Tasks",
+      "version": "4.3.0",
+      "purl": "pkg:nuget/System.Threading.Tasks@4.3.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Threading.Tasks.Dataflow",
+      "version": "4.6.0",
+      "purl": "pkg:nuget/System.Threading.Tasks.Dataflow@4.6.0"
+    },
+    {
+      "type": "library",
+      "name": "System.Windows.Extensions",
+      "version": "6.0.0",
+      "purl": "pkg:nuget/System.Windows.Extensions@6.0.0"
+    },
+    {
+      "type": "library",
+      "name": "xunit",
+      "version": "2.9.2",
+      "purl": "pkg:nuget/xunit@2.9.2"
+    },
+    {
+      "type": "library",
+      "name": "xunit.abstractions",
+      "version": "2.0.3",
+      "purl": "pkg:nuget/xunit.abstractions@2.0.3"
+    },
+    {
+      "type": "library",
+      "name": "xunit.analyzers",
+      "version": "1.16.0",
+      "purl": "pkg:nuget/xunit.analyzers@1.16.0"
+    },
+    {
+      "type": "library",
+      "name": "xunit.assert",
+      "version": "2.9.2",
+      "purl": "pkg:nuget/xunit.assert@2.9.2"
+    },
+    {
+      "type": "library",
+      "name": "Xunit.Combinatorial",
+      "version": "1.6.24",
+      "purl": "pkg:nuget/Xunit.Combinatorial@1.6.24"
+    },
+    {
+      "type": "library",
+      "name": "xunit.core",
+      "version": "2.9.2",
+      "purl": "pkg:nuget/xunit.core@2.9.2"
+    },
+    {
+      "type": "library",
+      "name": "xunit.extensibility.core",
+      "version": "2.9.2",
+      "purl": "pkg:nuget/xunit.extensibility.core@2.9.2"
+    },
+    {
+      "type": "library",
+      "name": "xunit.extensibility.execution",
+      "version": "2.9.2",
+      "purl": "pkg:nuget/xunit.extensibility.execution@2.9.2"
+    },
+    {
+      "type": "library",
+      "name": "xunit.runner.visualstudio",
+      "version": "2.8.2",
+      "purl": "pkg:nuget/xunit.runner.visualstudio@2.8.2"
+    }
+  ]
+}

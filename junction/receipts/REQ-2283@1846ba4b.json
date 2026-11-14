@@ -1,0 +1,651 @@
+{
+  "id": "REQ-2283@1846ba4b",
+  "generatedAt": "2026-11-14T04:18:43.252Z",
+  "engineVersion": "earned-trust/0.1",
+  "branch": "agent/req-2283-20261114-041549",
+  "requirement": {
+    "id": "REQ-2283",
+    "title": "Generator and analyzer must not crash on closed generic value types from referenced assemblies",
+    "source": "https://github.com/MessagePack-CSharp/MessagePack-CSharp/issues/2283",
+    "branch": "ju26-issue-2283",
+    "kind": "bug",
+    "intent": "A [MessagePackObject] type whose member is a closed generic struct declared in a referenced assembly must build cleanly and get a generated resolver.",
+    "functional": [
+      "MessagePackGenerator does not throw IndexOutOfRangeException for closed generic value types from metadata",
+      "MsgPack00xMessagePackAnalyzer does not throw for the same input",
+      "A GeneratedMessagePackResolver is emitted for the consuming assembly"
+    ],
+    "nonFunctional": [
+      "Existing diagnostics for source-declared types keep their current behaviour",
+      "No public API change"
+    ],
+    "expectedScope": [
+      "src/MessagePack.SourceGenerator/CodeAnalysis/**",
+      "tests/MessagePack.SourceGenerator.Tests/**",
+      "README.md",
+      "doc/analyzers/**"
+    ],
+    "issueBody": "#### Bug description\n\nBoth `MessagePackGenerator` (CS8785) and `MsgPack00xMessagePackAnalyzer` (AD0001) throw `IndexOutOfRangeException` when a `[MessagePackObject]` type has a member whose type is a **closed generic value type defined in a referenced assembly**.\n\nBecause the generator then \"will not contribute to the output\", the compiling assembly silently ends up with **no generated resolver at all**. It is only a warning, so a normal build looks fine, but trimmed and NativeAOT apps fail at runtime. In our case three assemblies of a large app had been shipping without a resolver across two releases before we noticed.\n\n#### Repro steps\n\nTwo projects. `lib`:\n\n```csharp\nusing MessagePack;\nnamespace Lib;\n\n[MessagePackObject]\npublic partial record struct Item<T>([property: Key(0)] string Key);\n```\n\n`app`, with a `ProjectReference` to `lib`:\n\n```csharp\nusing MessagePack; using Lib;\nnamespace App;\n\n[MessagePackObject]\npublic sealed partial record Cmd([property: Key(0)] string Scope)\n{\n    [Key(1)] public Item<int> Member { get; init; }\n}\n```\n\nThen `dotnet build` on `app`. Both projects are in the attached `mp-repro.zip`.\n\n#### Expected behavior\n\nA clean build, with a generated resolver in `app`.\n#### Actual behavior\n\n```\nCSC : warning CS8785: Generator 'MessagePackGenerator' failed to generate source. It will not\ncontribute to the output and compilation errors may occur as a result. Exception was of type\n'IndexOutOfRangeException' with message 'Index was outside the bounds of the array.'.\nCSC : warning AD0001: Analyzer 'MessagePack.SourceGenerator.Analyzers.MsgPack00xMessagePackAnalyzer'\nthrew an exception of type 'System.IndexOutOfRangeException' with message 'Index was outside the\nbounds of the array.'.\n```\n\n`app.dll` contains no `GeneratedMessagePackResolver`.\n\n- Version used: MessagePack 3.1.8\n- Runtime: .NET 10 (SDK 10.0.204), Windows 11\n\n#### Additional context\n\n**What triggers it.** `Item` is declared in `lib`, `Cmd` in `app`:\n\n| `Item` declared as | result |\n|---|---|\n| `record struct Item<T>` | **crash** |\n| `struct Item<T>` | **crash** |\n| `struct Item` | ok |\n| `record struct Item` | ok |\n| `class Item<T>` | ok |\n| `record class Item<T>` | ok |\n\nSo it needs all three of: **generic**, **value type**, **from a referenced assembly**. Moving the identical `Item<T>` declaration into `app` itself makes the crash disappear, which is what makes this specific to metadata symbols.\n**Stack trace.**\n\n```\nSystem.IndexOutOfRangeException: Index was outside the bounds of the array.\n   at TypeCollector.GetObjectInfo(INamedTypeSymbol formattedType, ISymbol callerSymbol)\n   at TypeCollector.CollectGeneric(INamedTypeSymbol type, ISymbol callerSymbol) in TypeCollector.cs:line 661\n   at TypeCollector.CollectCore(ITypeSymbol typeSymbol, ISymbol callerSymbol) in TypeCollector.cs:line 371\n   at TypeCollector.GetObjectInfo(INamedTypeSymbol formattedType, ISymbol callerSymbol) in TypeCollector.cs:line 1062\n   at TypeCollector.CollectCore(ITypeSymbol typeSymbol, ISymbol callerSymbol) in TypeCollector.cs:line 386\n   at TypeCollector.Collect() in TypeCollector.cs:line 300\n   at MsgPack00xMessagePackAnalyzer.AnalyzeSymbol(SymbolAnalysisContext, ReferenceSymbols, AnalyzerOptions) in MsgPack00xMessagePackAnalyzer.cs:line 431\n```\n\n`CollectGeneric` line 661 is the closed-generic branch that calls `GetObjectInfo` directly:\n\n```csharp\nelse\n{\n    // NOTE: ... closed generic types such as `Foo<string>` are not registered as a formatter.\n    this.GetObjectInfo(type, callerSymbol);\n```\n\nso `GetObjectInfo` runs against a type that has no syntax. Several diagnostic paths inside it index `DeclaringSyntaxReferences[0]` directly (lines 735, 1009, 1101) instead of using `FirstOrDefault()` the way the neighbouring `GetIdentifierLocation` / `GetLocation` / `GetParameterListLocation` helpers already do, and that collection is empty for a metadata symbol. I did not narrow down which of the three fires.\n\n**Getting the stack trace.** Console output truncates the exception to its message; `-p:ErrorLog=out.sarif` preserves the full description, including the stack trace and an `ISymbol:` context line naming the offending type:\n\n```\ndotnet build -p:ErrorLog=out.sarif\n```\n\n**Workaround.** Putting `[MessagePackFormatter(typeof(ItemFormatter<>))]` on the generic value type short-circuits `CollectCore` (line 356) before `GetObjectInfo` is reached, at the cost of hand-writing the formatter.\n\n**Possibly related:** #2092 reports CS8785 from the v3 generator, but with a different inner exception and no repro.\n\n[mp-repro.zip](https://github.com/user-attachments/files/30408133/mp-repro.zip)"
+  },
+  "repo": "/home/ijtihed/junction26-messagepack-csharp",
+  "baseSha": "32258fdbee4bcd653c79f51b4376b5103c6f4d27",
+  "headSha": "1846ba4b55f8c972406fc96b1cfa037eef3fa244",
+  "graphStats": {
+    "files": 685,
+    "nodes": 9179,
+    "edges": 30433,
+    "nameResolvedEdges": 268
+  },
+  "story": [
+    "REQ-2283 (bug): Generator and analyzer must not crash on closed generic value types from referenced assemblies.",
+    "The agent changed 1 member(s) across 1 type(s) (TypeCollector) and added 10 test(s).",
+    "6 files changed: 1 source, 5 test.",
+    "Risk score 1 → Light check. Owner reads 7 of 338 changed lines."
+  ],
+  "summary": {
+    "files": 6,
+    "added": 335,
+    "deleted": 3,
+    "byClass": {
+      "source": {
+        "files": 1,
+        "lines": 7
+      },
+      "test": {
+        "files": 5,
+        "lines": 331
+      }
+    },
+    "readLines": 7,
+    "totalLines": 338
+  },
+  "files": [
+    {
+      "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+      "status": "M",
+      "isCs": true,
+      "generated": false,
+      "isTest": false,
+      "added": 4,
+      "deleted": 3,
+      "triviaOnly": false,
+      "fileLevel": [],
+      "cls": "source",
+      "inScope": true,
+      "areas": [
+        "analyzer"
+      ]
+    },
+    {
+      "path": "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs",
+      "status": "M",
+      "isCs": true,
+      "generated": false,
+      "isTest": true,
+      "added": 73,
+      "deleted": 0,
+      "triviaOnly": false,
+      "fileLevel": [
+        "usings"
+      ],
+      "cls": "test",
+      "inScope": true,
+      "areas": []
+    },
+    {
+      "path": "tests/MessagePack.SourceGenerator.Tests/Resources/GenericValueTypes_Defined_In_MetadataReference/Formatters.MessagePack.GeneratedMessagePackResolver.App.CmdFormatter.g.cs",
+      "status": "A",
+      "isCs": true,
+      "generated": true,
+      "isTest": true,
+      "added": 64,
+      "deleted": 0,
+      "triviaOnly": false,
+      "fileLevel": [
+        "usings"
+      ],
+      "cls": "test",
+      "inScope": true,
+      "areas": []
+    },
+    {
+      "path": "tests/MessagePack.SourceGenerator.Tests/Resources/GenericValueTypes_Defined_In_MetadataReference/Formatters.MessagePack.GeneratedMessagePackResolver.Lib.ItemFormatter`1.g.cs",
+      "status": "A",
+      "isCs": true,
+      "generated": true,
+      "isTest": true,
+      "added": 55,
+      "deleted": 0,
+      "triviaOnly": false,
+      "fileLevel": [
+        "usings"
+      ],
+      "cls": "test",
+      "inScope": true,
+      "areas": []
+    },
+    {
+      "path": "tests/MessagePack.SourceGenerator.Tests/Resources/GenericValueTypes_Defined_In_MetadataReference/Formatters.MessagePack.GeneratedMessagePackResolver.Lib.PairFormatter`1.g.cs",
+      "status": "A",
+      "isCs": true,
+      "generated": true,
+      "isTest": true,
+      "added": 58,
+      "deleted": 0,
+      "triviaOnly": false,
+      "fileLevel": [
+        "usings"
+      ],
+      "cls": "test",
+      "inScope": true,
+      "areas": []
+    },
+    {
+      "path": "tests/MessagePack.SourceGenerator.Tests/Resources/GenericValueTypes_Defined_In_MetadataReference/MessagePack.GeneratedMessagePackResolver.g.cs",
+      "status": "A",
+      "isCs": true,
+      "generated": true,
+      "isTest": true,
+      "added": 81,
+      "deleted": 0,
+      "triviaOnly": false,
+      "fileLevel": [
+        "usings"
+      ],
+      "cls": "test",
+      "inScope": true,
+      "areas": []
+    }
+  ],
+  "members": [
+    {
+      "key": "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.GetObjectInfo(INamedTypeSymbol,ISymbol?)",
+      "nodeId": "cs:e422c5f506226ac5",
+      "name": "GetObjectInfo",
+      "csKind": "method",
+      "file": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+      "changes": [
+        "body"
+      ],
+      "publicApi": false,
+      "changedLines": 7,
+      "directCallers": 2,
+      "transitiveCallers": 7,
+      "tests": [
+        {
+          "test": "GenericsFormatterTests.GenericValueTypes_Defined_In_MetadataReference()",
+          "path": [
+            "GenericsFormatterTests.GenericValueTypes_Defined_In_MetadataReference",
+            "SourceGenerator.MessagePackGenerator",
+            "MessagePackGenerator.Initialize",
+            "TypeCollector.Collect",
+            "TypeCollector.Collect",
+            "TypeCollector.CollectCore",
+            "TypeCollector.CollectGeneric",
+            "TypeCollector.GetObjectInfo"
+          ],
+          "pathKeys": [
+            "GenericsFormatterTests.GenericValueTypes_Defined_In_MetadataReference()",
+            "MessagePack.SourceGenerator.MessagePackGenerator",
+            "MessagePack.SourceGenerator.MessagePackGenerator.Initialize(IncrementalGeneratorInitializationContext)",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.Collect(Compilation,AnalyzerOptions,ReferenceSymbols,Action<Diagnostic>?,ITypeSymbol,CancellationToken)",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.Collect()",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.CollectCore(ITypeSymbol,ISymbol?)",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.CollectGeneric(INamedTypeSymbol,ISymbol?)",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.GetObjectInfo(INamedTypeSymbol,ISymbol?)"
+          ],
+          "isNew": true
+        },
+        {
+          "test": "CustomStringKeyFormatterTests.RecordWithPrimaryConstructor()",
+          "path": [
+            "CustomStringKeyFormatterTests.RecordWithPrimaryConstructor",
+            "SourceGenerator.MessagePackGenerator",
+            "MessagePackGenerator.Initialize",
+            "TypeCollector.Collect",
+            "TypeCollector.Collect",
+            "TypeCollector.CollectCore",
+            "TypeCollector.CollectGeneric",
+            "TypeCollector.GetObjectInfo"
+          ],
+          "pathKeys": [
+            "CustomStringKeyFormatterTests.RecordWithPrimaryConstructor()",
+            "MessagePack.SourceGenerator.MessagePackGenerator",
+            "MessagePack.SourceGenerator.MessagePackGenerator.Initialize(IncrementalGeneratorInitializationContext)",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.Collect(Compilation,AnalyzerOptions,ReferenceSymbols,Action<Diagnostic>?,ITypeSymbol,CancellationToken)",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.Collect()",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.CollectCore(ITypeSymbol,ISymbol?)",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.CollectGeneric(INamedTypeSymbol,ISymbol?)",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.GetObjectInfo(INamedTypeSymbol,ISymbol?)"
+          ],
+          "isNew": false
+        },
+        {
+          "test": "CustomStringKeyFormatterTests.RecordWithWithInitOnlyProps()",
+          "path": [
+            "CustomStringKeyFormatterTests.RecordWithWithInitOnlyProps",
+            "SourceGenerator.MessagePackGenerator",
+            "MessagePackGenerator.Initialize",
+            "TypeCollector.Collect",
+            "TypeCollector.Collect",
+            "TypeCollector.CollectCore",
+            "TypeCollector.CollectGeneric",
+            "TypeCollector.GetObjectInfo"
+          ],
+          "pathKeys": [
+            "CustomStringKeyFormatterTests.RecordWithWithInitOnlyProps()",
+            "MessagePack.SourceGenerator.MessagePackGenerator",
+            "MessagePack.SourceGenerator.MessagePackGenerator.Initialize(IncrementalGeneratorInitializationContext)",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.Collect(Compilation,AnalyzerOptions,ReferenceSymbols,Action<Diagnostic>?,ITypeSymbol,CancellationToken)",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.Collect()",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.CollectCore(ITypeSymbol,ISymbol?)",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.CollectGeneric(INamedTypeSymbol,ISymbol?)",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.GetObjectInfo(INamedTypeSymbol,ISymbol?)"
+          ],
+          "isNew": false
+        },
+        {
+          "test": "GenerationTests.EnumFormatter(ContainerKind,bool)",
+          "path": [
+            "GenerationTests.EnumFormatter",
+            "SourceGenerator.MessagePackGenerator",
+            "MessagePackGenerator.Initialize",
+            "TypeCollector.Collect",
+            "TypeCollector.Collect",
+            "TypeCollector.CollectCore",
+            "TypeCollector.CollectGeneric",
+            "TypeCollector.GetObjectInfo"
+          ],
+          "pathKeys": [
+            "GenerationTests.EnumFormatter(ContainerKind,bool)",
+            "MessagePack.SourceGenerator.MessagePackGenerator",
+            "MessagePack.SourceGenerator.MessagePackGenerator.Initialize(IncrementalGeneratorInitializationContext)",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.Collect(Compilation,AnalyzerOptions,ReferenceSymbols,Action<Diagnostic>?,ITypeSymbol,CancellationToken)",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.Collect()",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.CollectCore(ITypeSymbol,ISymbol?)",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.CollectGeneric(INamedTypeSymbol,ISymbol?)",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.GetObjectInfo(INamedTypeSymbol,ISymbol?)"
+          ],
+          "isNew": false
+        },
+        {
+          "test": "GenerationTests.EnumFormatter_CollidingTypeNames()",
+          "path": [
+            "GenerationTests.EnumFormatter_CollidingTypeNames",
+            "SourceGenerator.MessagePackGenerator",
+            "MessagePackGenerator.Initialize",
+            "TypeCollector.Collect",
+            "TypeCollector.Collect",
+            "TypeCollector.CollectCore",
+            "TypeCollector.CollectGeneric",
+            "TypeCollector.GetObjectInfo"
+          ],
+          "pathKeys": [
+            "GenerationTests.EnumFormatter_CollidingTypeNames()",
+            "MessagePack.SourceGenerator.MessagePackGenerator",
+            "MessagePack.SourceGenerator.MessagePackGenerator.Initialize(IncrementalGeneratorInitializationContext)",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.Collect(Compilation,AnalyzerOptions,ReferenceSymbols,Action<Diagnostic>?,ITypeSymbol,CancellationToken)",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.Collect()",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.CollectCore(ITypeSymbol,ISymbol?)",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.CollectGeneric(INamedTypeSymbol,ISymbol?)",
+            "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.GetObjectInfo(INamedTypeSymbol,ISymbol?)"
+          ],
+          "isNew": false
+        }
+      ],
+      "flags": [],
+      "before": {
+        "signature": "private ObjectSerializationInfo? GetObjectInfo(INamedTypeSymbol formattedType, ISymbol? callerSymbol)",
+        "accessibility": "private",
+        "publicApi": false,
+        "attributes": [],
+        "startLine": 700,
+        "endLine": 1418,
+        "text": "    private ObjectSerializationInfo? GetObjectInfo(INamedTypeSymbol formattedType, ISymbol? callerSymbol)\n    {\n        var isClass = !formattedType.IsValueType;\n        bool nestedFormatterRequired = false;\n        List<IPropertySymbol> nestedFormatterRequiredIfPropertyIsNotSetByDeserializingCtor = new();\n\n        AttributeData? contractAttr = formattedType.GetAttributes().FirstOrDefault(x => x.AttributeClass.ApproximatelyEqual(this.typeReferences.MessagePackObjectAttribute));\n\n        // Examine properties set on the attribute such that we can discern whether they were explicitly set or not.\n        // This is useful when we have assembly-level attributes or other environmentally-controlled defaults that the attribute may override either direction.\n        bool? suppressSourceGeneration = (bool?)contractAttr?.NamedArguments.FirstOrDefault(kvp => kvp.Key == Constants.SuppressSourceGenerationPropertyName).Value.Value;\n        bool? allowPrivateAttribute = (bool?)contractAttr?.NamedArguments.FirstOrDefault(kvp => kvp.Key == Constants.AllowPrivatePropertyName).Value.Value;\n\n        if (contractAttr is null)\n        {\n            ////this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.TypeMustBeMessagePackObject, ((BaseTypeDeclarationSyntax)type.DeclaringSyntaxReferences[0].GetSyntax()).Identifier.GetLocation(), type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)));\n        }\n\n        bool isIntKey = true;\n        Dictionary<int, (MemberSerializationInfo Info, ITypeSymbol TypeSymbol)> intMembers = new();\n        Dictionary<string, (MemberSerializationInfo Info, ITypeSymbol TypeSymbol)> stringMembers = new();\n\n        // We default to not requiring non-public members to be attributed,\n        // but as soon as the first non-public member *is* attributed,\n        // we'll require all non-public members to be attributed.\n        // Historically, only public members were able to be serialized by default,\n        // so the analyzer only highlighted missing attributes on public members.\n        // But once it's clear that the developer is serializing non-public members,\n        // we need to raise the bar for all non-public members.\n        bool nonPublicMembersAreSerialized = false;\n        List<Diagnostic> deferredDiagnosticsForNonPublicMembers = new();\n\n        FormatterDescriptor? GetSpecialFormatter(ISymbol member)\n        {\n            INamedTypeSymbol? name = member.GetAttributes().FirstOrDefault(x => x.AttributeClass.ApproximatelyEqual(this.typeReferences.FormatterAttribute))?.ConstructorArguments[0].Value as INamedTypeSymbol;\n            if (name is not null)\n            {\n                if (FormatterDescriptor.TryCreate(name, out FormatterDescriptor? descriptor))\n                {\n                    return descriptor;\n                }\n                else\n                {\n                    // Report that the named type is not a formatter.\n                    // this.reportDiagnostic();\n                }\n            }\n\n            return null;\n        }\n\n        HashSet<Diagnostic> reportedDiagnostics = new();\n        IEnumerable<ISymbol> instanceMembers = formattedType.GetAllMembers()\n            .Where(m => m is IFieldSymbol or IPropertySymbol && !(m.IsStatic || m.IsOverride || m.IsImplicitlyDeclared));\n\n        // The actual member identifiers of each serializable member,\n        // such that we'll recognize collisions as we enumerate members in base types\n        // and record that that happened so that the emitted source generator can apply the necessary casts.\n        // In particular this does NOT store substitute names given by KeyAttribute.Name.\n        // Members should be added to this set after they are verified to be accessible, instance, non-override properties,\n        // whether or not those members are serialized.\n        HashSet<string> collidingMemberNames = new(StringComparer.Ordinal);\n        HashSet<string> observedMemberNames = new(StringComparer.Ordinal);\n        foreach (ISymbol member in instanceMembers)\n        {\n            if (!observedMemberNames.Add(member.Name))\n            {\n                collidingMemberNames.Add(member.Name);\n            }\n        }\n\n        QualifiedNamedTypeName? GetDeclaringTypeIfColliding(ISymbol symbol) => collidingMemberNames.Contains(symbol.Name) && !SymbolEqualityComparer.Default.Equals(symbol.ContainingType, formattedType) ? new(symbol.ContainingType) : null;\n\n        if (this.options.Generator.Formatters.UsesMapMode || (contractAttr?.ConstructorArguments[0] is { Value: true }))\n        {\n            Dictionary<string, ISymbol> claimedKeys = new(StringComparer.Ordinal);\n            void ReportNonUniqueNameIfApplicable(ISymbol item, string stringKey)\n            {\n                if (claimedKeys.TryGetValue(stringKey, out ISymbol newSymbol))\n                {\n                    SyntaxNode? syntax = newSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(this.cancellationToken);\n                    var location = syntax switch\n                    {\n                        PropertyDeclarationSyntax { Identifier: SyntaxToken propertyId } => propertyId.GetLocation(),\n                        VariableDeclaratorSyntax { Identifier: SyntaxToken fieldId } => fieldId.GetLocation(),\n                        not null => syntax.GetLocation(),\n                        _ => null,\n                    };\n\n                    reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.CollidingMemberNamesInForceMapMode, location));\n                }\n\n                claimedKeys[stringKey] = item;\n            }\n\n            // All public members are serialize target except [Ignore] member.\n            // Include private members if the type opted into that.\n            Accessibility minimumAccessibility = allowPrivateAttribute is true ? Accessibility.Private : Accessibility.Public;\n            isIntKey = false;\n\n            var hiddenIntKey = 0;\n\n            foreach (ISymbol baseItem in instanceMembers)\n            {\n                switch (baseItem)\n                {\n                    case IPropertySymbol item:\n                        {\n                            ImmutableArray<AttributeData> attributes = item.GetAttributes();\n                            if (attributes.Any(x => (x.AttributeClass.ApproximatelyEqual(this.typeReferences.IgnoreAttribute) || x.AttributeClass?.Name == this.typeReferences.IgnoreDataMemberAttribute?.Name)) ||\n                                item.DeclaredAccessibility < minimumAccessibility)\n                            {\n                                continue;\n                            }\n\n                            bool isReadable = item.GetMethod is not null;\n                            bool isWritable = item.SetMethod is not null;\n                            if (!isReadable && !isWritable)\n                            {\n                                continue;\n                            }\n\n                            bool isInitOnly = item.SetMethod?.IsInitOnly is true;\n                            AttributeData? keyAttribute = attributes.FirstOrDefault(attributes => attributes.AttributeClass.ApproximatelyEqual(this.typeReferences.KeyAttribute));\n                            string stringKey = keyAttribute?.ConstructorArguments.Length == 1 && keyAttribute.ConstructorArguments[0].Value is string name ? name : item.Name;\n                            ReportNonUniqueNameIfApplicable(item, stringKey);\n\n                            nestedFormatterRequired |= item.GetMethod is not null && IsPartialTypeRequired(item.GetMethod.DeclaredAccessibility);\n                            nestedFormatterRequired |= item.SetMethod is not null && IsPartialTypeRequired(item.SetMethod.DeclaredAccessibility);\n                            FormatterDescriptor? specialFormatter = GetSpecialFormatter(item);\n                            MemberSerializationInfo member = new(true, isWritable, isReadable, isInitOnly, item.IsRequired, hiddenIntKey++, stringKey, item.Name, item.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), item.Type.ToDisplayString(BinaryWriteFormat), specialFormatter)\n                            {\n                                DeclaringType = GetDeclaringTypeIfColliding(item),\n                            };\n                            if (!stringMembers.ContainsKey(member.StringKey))\n                            {\n                                stringMembers.Add(member.StringKey, (member, item.Type));\n                            }\n\n                            if (specialFormatter is null)\n                            {\n                                this.CollectCore(item.Type, item); // recursive collect\n                            }\n                        }\n\n                        break;\n                    case IFieldSymbol item:\n                        {\n                            ImmutableArray<AttributeData> attributes = item.GetAttributes();\n                            if (attributes.Any(x => (x.AttributeClass.ApproximatelyEqual(this.typeReferences.IgnoreAttribute) || x.AttributeClass?.Name == this.typeReferences.IgnoreDataMemberAttribute?.Name)) ||\n                                item.DeclaredAccessibility < minimumAccessibility)\n                            {\n                                continue;\n                            }\n\n                            AttributeData? keyAttribute = attributes.FirstOrDefault(attributes => attributes.AttributeClass.ApproximatelyEqual(this.typeReferences.KeyAttribute));\n                            string stringKey = keyAttribute?.ConstructorArguments.Length == 1 && keyAttribute.ConstructorArguments[0].Value is string name ? name : item.Name;\n                            ReportNonUniqueNameIfApplicable(item, stringKey);\n\n                            nestedFormatterRequired |= IsPartialTypeRequired(item.DeclaredAccessibility);\n                            FormatterDescriptor? specialFormatter = GetSpecialFormatter(item);\n                            MemberSerializationInfo member = new(false, IsWritable: !item.IsReadOnly, IsReadable: true, IsInitOnly: false, item.IsRequired, hiddenIntKey++, stringKey, item.Name, item.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), item.Type.ToDisplayString(BinaryWriteFormat), specialFormatter)\n                            {\n                                DeclaringType = GetDeclaringTypeIfColliding(item),\n                            };\n                            if (!stringMembers.ContainsKey(member.StringKey))\n                            {\n                                stringMembers.Add(member.StringKey, (member, item.Type));\n                            }\n\n                            if (specialFormatter is null)\n                            {\n                                this.CollectCore(item.Type, item); // recursive collect\n                            }\n                        }\n\n                        break;\n                }\n            }\n        }\n        else\n        {\n            // Only KeyAttribute members\n            var searchFirst = true;\n            var hiddenIntKey = 0;\n\n            foreach (IPropertySymbol item in instanceMembers.OfType<IPropertySymbol>())\n            {\n                if (item.IsIndexer)\n                {\n                    continue; // .tt files don't generate good code for this yet: https://github.com/neuecc/MessagePack-CSharp/issues/390\n                }\n\n                if (item.GetAttributes().Any(x =>\n                {\n                    var typeReferencesIgnoreDataMemberAttribute = this.typeReferences.IgnoreDataMemberAttribute;\n                    return typeReferencesIgnoreDataMemberAttribute != null && (x.AttributeClass.ApproximatelyEqual(this.typeReferences.IgnoreAttribute) || x.AttributeClass.ApproximatelyEqual(typeReferencesIgnoreDataMemberAttribute));\n                }))\n                {\n                    nonPublicMembersAreSerialized |= (item.DeclaredAccessibility & Accessibility.Public) != Accessibility.Public;\n                    continue;\n                }\n\n                bool isReadable = item.GetMethod is not null;\n                bool isWritable = item.SetMethod is not null;\n                bool isInitOnly = item.SetMethod?.IsInitOnly is true;\n                if (!isReadable && !isWritable)\n                {\n                    continue;\n                }\n\n                FormatterDescriptor? specialFormatter = GetSpecialFormatter(item);\n                TypedConstant? key = item.GetAttributes().FirstOrDefault(x => x.AttributeClass.ApproximatelyEqual(this.typeReferences.KeyAttribute))?.ConstructorArguments[0];\n                if (key is null)\n                {\n                    if (contractAttr is not null)\n                    {\n                        // If the member is attributed with a type derived from KeyAttribute, that's incompatible with source generation\n                        // since we cannot know what the key is using only C# syntax and the semantic model.\n                        SyntaxReference? derivedKeyAttribute = item.GetAttributes().FirstOrDefault(att => att.AttributeClass.IsApproximatelyEqualOrDerivedFrom(this.typeReferences.KeyAttribute) == RoslynAnalyzerExtensions.EqualityMatch.LeftDerivesFromRight)?.ApplicationSyntaxReference;\n\n                        if (derivedKeyAttribute is null || suppressSourceGeneration is not true)\n                        {\n                            if (SymbolEqualityComparer.Default.Equals(item.ContainingType, formattedType))\n                            {\n                                var syntax = item.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax();\n                                var identifier = (syntax as PropertyDeclarationSyntax)?.Identifier ?? (syntax as ParameterSyntax)?.Identifier;\n\n                                Diagnostic diagnostic = derivedKeyAttribute is not null && suppressSourceGeneration is not true\n                                    ? Diagnostic.Create(MsgPack00xMessagePackAnalyzer.AOTDerivedKeyAttribute, derivedKeyAttribute.GetSyntax(this.cancellationToken).GetLocation())\n                                    : Diagnostic.Create(MsgPack00xMessagePackAnalyzer.MemberNeedsKey, identifier?.GetLocation(), formattedType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), item.Name);\n                                if (nonPublicMembersAreSerialized || (item.DeclaredAccessibility & Accessibility.Public) == Accessibility.Public)\n                                {\n                                    this.reportDiagnostic?.Invoke(diagnostic);\n                                }\n                                else\n                                {\n                                    deferredDiagnosticsForNonPublicMembers.Add(diagnostic);\n                                }\n                            }\n                            else if (formattedType.BaseType is not null)\n                            {\n                                // The member was inherited, so we raise a special error at the location of the base type reference.\n                                BaseTypeSyntax? baseSyntax = formattedType.DeclaringSyntaxReferences.SelectMany(sr => (IEnumerable<BaseTypeSyntax>?)((BaseTypeDeclarationSyntax)sr.GetSyntax()).BaseList?.Types ?? Array.Empty<BaseTypeSyntax>())\n                                    .FirstOrDefault(bt => SymbolEqualityComparer.Default.Equals(this.compilation.GetSemanticModel(bt.SyntaxTree).GetTypeInfo(bt.Type).Type, item.ContainingType));\n                                if (baseSyntax is not null)\n                                {\n                                    Diagnostic diagnostic = derivedKeyAttribute is not null && suppressSourceGeneration is not true\n                                        ? Diagnostic.Create(MsgPack00xMessagePackAnalyzer.AOTDerivedKeyAttribute, baseSyntax.GetLocation())\n                                        : Diagnostic.Create(\n                                            MsgPack00xMessagePackAnalyzer.BaseTypeContainsUnattributedPublicMembers,\n                                            baseSyntax.GetLocation(),\n                                            item.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),\n                                            item.Name);\n                                    if (reportedDiagnostics.Add(diagnostic))\n                                    {\n                                        if (nonPublicMembersAreSerialized || (item.DeclaredAccessibility & Accessibility.Public) == Accessibility.Public)\n                                        {\n                                            this.reportDiagnostic?.Invoke(diagnostic);\n                                        }\n                                        else\n                                        {\n                                            deferredDiagnosticsForNonPublicMembers.Add(diagnostic);\n                                        }\n                                    }\n                                }\n                            }\n                        }\n                    }\n                }\n                else\n                {\n                    // If this attributed member is non-public, then all non-public members should be attributed.\n                    nonPublicMembersAreSerialized |= (item.DeclaredAccessibility & Accessibility.Public) != Accessibility.Public;\n\n                    nestedFormatterRequired |= item.GetMethod is not null && IsPartialTypeRequired(item.GetMethod.DeclaredAccessibility);\n                    if (item.SetMethod is not null && IsPartialTypeRequired(item.SetMethod.DeclaredAccessibility))\n                    {\n                        nestedFormatterRequiredIfPropertyIsNotSetByDeserializingCtor.Add(item);\n                    }\n\n                    var intKey = key is { Value: int intKeyValue } ? intKeyValue : default(int?);\n                    var stringKey = key is { Value: string stringKeyValue } ? stringKeyValue : default;\n                    if (intKey == null && stringKey == null)\n                    {\n                        this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.BothStringAndIntKeyAreNull, ((PropertyDeclarationSyntax)item.DeclaringSyntaxReferences[0].GetSyntax()).Identifier.GetLocation(), formattedType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), item.Name));\n                    }\n\n                    // A property with an init accessor and an initializer has a default that will be discarded by the deserializer.\n                    if (suppressSourceGeneration is not true && isInitOnly)\n                    {\n                        EqualsValueClauseSyntax? initializer = item.DeclaringSyntaxReferences.Select(s => (s.GetSyntax(this.cancellationToken) as PropertyDeclarationSyntax)?.Initializer).FirstOrDefault(i => i is not null);\n                        if (initializer is not null)\n                        {\n                            this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.AOTInitProperty, initializer.GetLocation()));\n                        }\n                    }\n\n                    if (searchFirst)\n                    {\n                        searchFirst = false;\n                        isIntKey = intKey != null;\n                    }\n                    else\n                    {\n                        if ((isIntKey && intKey == null) || (!isIntKey && stringKey == null))\n                        {\n                            this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.DoNotMixStringAndIntKeys, item.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax().GetLocation()));\n                        }\n                    }\n\n                    if (isIntKey)\n                    {\n                        if (intMembers.ContainsKey(intKey!.Value))\n                        {\n                            this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.KeysMustBeUnique, item.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax().GetLocation()));\n                        }\n\n                        var member = new MemberSerializationInfo(true, isWritable, isReadable, isInitOnly, item.IsRequired, intKey!.Value, item.Name, item.Name, item.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), item.Type.ToDisplayString(BinaryWriteFormat), specialFormatter)\n                        {\n                            DeclaringType = GetDeclaringTypeIfColliding(item),\n                        };\n                        intMembers.Add(member.IntKey, (member, item.Type));\n                    }\n                    else if (stringKey is not null)\n                    {\n                        if (stringMembers.ContainsKey(stringKey!))\n                        {\n                            this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.KeysMustBeUnique, item.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax().GetLocation()));\n                        }\n\n                        var member = new MemberSerializationInfo(true, isWritable, isReadable, isInitOnly, item.IsRequired, hiddenIntKey++, stringKey!, item.Name, item.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), item.Type.ToDisplayString(BinaryWriteFormat), specialFormatter)\n                        {\n                            DeclaringType = GetDeclaringTypeIfColliding(item),\n                        };\n                        stringMembers.Add(member.StringKey, (member, item.Type));\n                    }\n\n                    var messagePackFormatter = item.GetAttributes().FirstOrDefault(x => x.AttributeClass.ApproximatelyEqual(this.typeReferences.FormatterAttribute))?.ConstructorArguments[0];\n\n                    if (messagePackFormatter == null)\n                    {\n                        // recursive collect\n                        this.CollectCore(item.Type, item);\n                    }\n                }\n            }\n\n            foreach (IFieldSymbol item in formattedType.GetAllMembers().OfType<IFieldSymbol>())\n            {\n                if (item.IsImplicitlyDeclared || item.IsStatic)\n                {\n                    continue;\n                }\n\n                if (item.GetAttributes().Any(x => x.AttributeClass.ApproximatelyEqual(this.typeReferences.IgnoreAttribute)))\n                {\n                    nonPublicMembersAreSerialized |= (item.DeclaredAccessibility & Accessibility.Public) != Accessibility.Public;\n                    continue;\n                }\n\n                FormatterDescriptor? specialFormatter = GetSpecialFormatter(item);\n                TypedConstant? key = item.GetAttributes().FirstOrDefault(x => x.AttributeClass.ApproximatelyEqual(this.typeReferences.KeyAttribute))?.ConstructorArguments[0];\n                if (key is null)\n                {\n                    if (contractAttr is not null)\n                    {\n                        // If the member is attributed with a type derived from KeyAttribute, that's incompatible with source generation\n                        // since we cannot know what the key is using only C# syntax and the semantic model.\n                        SyntaxReference? derivedKeyAttribute = item.GetAttributes().FirstOrDefault(att => att.AttributeClass.IsApproximatelyEqualOrDerivedFrom(this.typeReferences.KeyAttribute) == RoslynAnalyzerExtensions.EqualityMatch.LeftDerivesFromRight)?.ApplicationSyntaxReference;\n\n                        if (derivedKeyAttribute is null || suppressSourceGeneration is not true)\n                        {\n                            if (SymbolEqualityComparer.Default.Equals(item.ContainingType, formattedType))\n                            {\n                                Diagnostic diagnostic = derivedKeyAttribute is not null && suppressSourceGeneration is not true\n                                    ? Diagnostic.Create(MsgPack00xMessagePackAnalyzer.AOTDerivedKeyAttribute, derivedKeyAttribute.GetSyntax(this.cancellationToken).GetLocation())\n                                    : Diagnostic.Create(MsgPack00xMessagePackAnalyzer.MemberNeedsKey, item.DeclaringSyntaxReferences[0].GetSyntax().GetLocation(), formattedType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), item.Name);\n                                if (nonPublicMembersAreSerialized || (item.DeclaredAccessibility & Accessibility.Public) == Accessibility.Public)\n                                {\n                                    this.reportDiagnostic?.Invoke(diagnostic);\n                                }\n                                else\n                                {\n                                    deferredDiagnosticsForNonPublicMembers.Add(diagnostic);\n                                }\n                            }\n                            else if (formattedType.BaseType is not null)\n                            {\n                                // The member was inherited, so we raise a special error at the location of the base type reference.\n                                BaseTypeSyntax? baseSyntax = formattedType.DeclaringSyntaxReferences.SelectMany(sr => (IEnumerable<BaseTypeSyntax>?)((BaseTypeDeclarationSyntax)sr.GetSyntax()).BaseList?.Types ?? Array.Empty<BaseTypeSyntax>())\n                                    .FirstOrDefault(bt => SymbolEqualityComparer.Default.Equals(this.compilation.GetSemanticModel(bt.SyntaxTree).GetTypeInfo(bt.Type).Type, item.ContainingType));\n                                if (baseSyntax is not null)\n                                {\n                                    Diagnostic diagnostic = derivedKeyAttribute is not null && suppressSourceGeneration is not true\n                                        ? Diagnostic.Create(MsgPack00xMessagePackAnalyzer.AOTDerivedKeyAttribute, baseSyntax.GetLocation())\n                                        : Diagnostic.Create(\n                                            MsgPack00xMessagePackAnalyzer.BaseTypeContainsUnattributedPublicMembers,\n                                            baseSyntax.GetLocation(),\n                                            item.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),\n                                            item.Name);\n                                    if (reportedDiagnostics.Add(diagnostic))\n                                    {\n                                        if (nonPublicMembersAreSerialized || (item.DeclaredAccessibility & Accessibility.Public) == Accessibility.Public)\n                                        {\n                                            this.reportDiagnostic?.Invoke(diagnostic);\n                                        }\n                                        else\n                                        {\n                                            deferredDiagnosticsForNonPublicMembers.Add(diagnostic);\n                                        }\n                                    }\n                                }\n                            }\n                        }\n                    }\n                }\n                else\n                {\n                    // If this attributed member is non-public, then all non-public members should be attributed.\n                    nonPublicMembersAreSerialized |= (item.DeclaredAccessibility & Accessibility.Public) != Accessibility.Public;\n\n                    nestedFormatterRequired |= IsPartialTypeRequired(item.DeclaredAccessibility);\n\n                    var intKey = key is { Value: int intKeyValue } ? intKeyValue : default(int?);\n                    var stringKey = key is { Value: string stringKeyValue } ? stringKeyValue : default;\n                    if (intKey == null && stringKey == null)\n                    {\n                        this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.BothStringAndIntKeyAreNull, item.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax().GetLocation()));\n                    }\n\n                    if (searchFirst)\n                    {\n                        searchFirst = false;\n                        isIntKey = intKey != null;\n                    }\n                    else\n                    {\n                        if ((isIntKey && intKey == null) || (!isIntKey && stringKey == null))\n                        {\n                            this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.DoNotMixStringAndIntKeys, item.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax().GetLocation()));\n                        }\n                    }\n\n                    if (isIntKey)\n                    {\n                        if (intMembers.ContainsKey(intKey!.Value))\n                        {\n                            this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.KeysMustBeUnique, item.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax().GetLocation()));\n                        }\n\n                        var member = new MemberSerializationInfo(true, IsWritable: !item.IsReadOnly, IsReadable: true, IsInitOnly: false, item.IsRequired, intKey!.Value, item.Name, item.Name, item.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), item.Type.ToDisplayString(BinaryWriteFormat), specialFormatter)\n                        {\n                            DeclaringType = GetDeclaringTypeIfColliding(item),\n                        };\n                        intMembers.Add(member.IntKey, (member, item.Type));\n                    }\n                    else\n                    {\n                        if (stringMembers.ContainsKey(stringKey!))\n                        {\n                            this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.KeysMustBeUnique, item.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax().GetLocation()));\n                        }\n\n                        var member = new MemberSerializationInfo(true, IsWritable: !item.IsReadOnly, IsReadable: true, IsInitOnly: false, item.IsRequired, hiddenIntKey++, stringKey!, item.Name, item.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), item.Type.ToDisplayString(BinaryWriteFormat), specialFormatter)\n                        {\n                            DeclaringType = GetDeclaringTypeIfColliding(item),\n                        };\n                        stringMembers.Add(member.StringKey, (member, item.Type));\n                    }\n\n                    var messagePackFormatter = item.GetAttributes().FirstOrDefault(x => x.AttributeClass.ApproximatelyEqual(this.typeReferences.FormatterAttribute))?.ConstructorArguments[0];\n\n                    if (messagePackFormatter == null)\n                    {\n                        // recursive collect\n                        this.CollectCore(item.Type, item);\n                    }\n                }\n            }\n        }\n\n        // If we discovered midway through that we should be reporting diagnostics for non-public members,\n        // report the ones we missed along the way.\n        if ((nonPublicMembersAreSerialized || allowPrivateAttribute is true) && this.reportDiagnostic is not null)\n        {\n            foreach (Diagnostic deferred in deferredDiagnosticsForNonPublicMembers)\n            {\n                this.reportDiagnostic(deferred);\n            }\n        }\n\n        // GetConstructor\n        var ctorEnumerator = default(IEnumerator<IMethodSymbol>);\n        var ctor = formattedType.Constructors.SingleOrDefault(x => x.GetAttributes().Any(y => y.AttributeClass != null && y.AttributeClass.ApproximatelyEqual(this.typeReferences.SerializationConstructorAttribute)));\n        if (ctor is null)\n        {\n            ctorEnumerator = formattedType.Constructors\n                .OrderByDescending(x => x.DeclaredAccessibility)\n                .ThenByDescending(x => x.Parameters.Length)\n                .GetEnumerator();\n\n            if (ctorEnumerator.MoveNext())\n            {\n                ctor = ctorEnumerator.Current;\n            }\n        }\n\n        // struct allows null ctor\n        if (ctor is null && isClass)\n        {\n            this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.NoDeserializingConstructor, GetIdentifierLocation(formattedType)));\n            return null;\n        }\n\n        var constructorParameters = new List<MemberSerializationInfo>();\n        if (ctor is not null)\n        {\n            nestedFormatterRequired |= IsPartialTypeRequired(ctor.DeclaredAccessibility);\n\n            var constructorLookupDictionary = stringMembers.ToLookup(x => x.Value.Info.Name, x => x, StringComparer.OrdinalIgnoreCase);\n            IReadOnlyDictionary<int, (MemberSerializationInfo Info, ITypeSymbol TypeSymbol)> ctorParamIndexIntMembersDictionary = intMembers\n                .OrderBy(x => x.Key).Select((x, i) => (Key: x.Value, Index: i))\n                .ToDictionary(x => x.Index, x => x.Key);\n            do\n            {\n                constructorParameters.Clear();\n                var ctorParamIndex = 0;\n                foreach (IParameterSymbol item in ctor!.Parameters)\n                {\n                    if (isIntKey)\n                    {\n                        if (ctorParamIndexIntMembersDictionary.TryGetValue(ctorParamIndex, out (MemberSerializationInfo Info, ITypeSymbol TypeSymbol) member))\n                        {\n                            if (this.compilation.ClassifyConversion(member.TypeSymbol, item.Type) is { IsImplicit: true } && member.Info.IsReadable)\n                            {\n                                constructorParameters.Add(member.Info);\n                            }\n                            else\n                            {\n                                if (ctorEnumerator != null)\n                                {\n                                    ctor = null;\n                                    continue;\n                                }\n                                else\n                                {\n                                    this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.DeserializingConstructorParameterTypeMismatch, GetLocation(item)));\n                                    return null;\n                                }\n                            }\n                        }\n                        else\n                        {\n                            if (ctorEnumerator != null)\n                            {\n                                ctor = null;\n                                continue;\n                            }\n                            else\n                            {\n                                this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.DeserializingConstructorParameterIndexMissing, GetParameterListLocation(ctor)));\n                                return null;\n                            }\n                        }\n                    }\n                    else\n                    {\n                        IEnumerable<KeyValuePair<string, (MemberSerializationInfo Info, ITypeSymbol TypeSymbol)>> hasKey = constructorLookupDictionary[item.Name];\n                        using var enumerator = hasKey.GetEnumerator();\n\n                        // hasKey.Count() == 0\n                        if (!enumerator.MoveNext())\n                        {\n                            if (ctorEnumerator == null)\n                            {\n                                this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.DeserializingConstructorParameterNameMissing, GetParameterListLocation(ctor)));\n                                return null;\n                            }\n\n                            ctor = null;\n                            continue;\n                        }\n\n                        var first = enumerator.Current.Value;\n\n                        // hasKey.Count() != 1\n                        if (enumerator.MoveNext())\n                        {\n                            if (ctorEnumerator == null)\n                            {\n                                this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.DeserializingConstructorParameterNameDuplicate, GetLocation(item)));\n                                return null;\n                            }\n\n                            ctor = null;\n                            continue;\n                        }\n\n                        MemberSerializationInfo paramMember = first.Info;\n                        if (item.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == paramMember.Type && paramMember.IsReadable)\n                        {\n                            constructorParameters.Add(paramMember);\n                        }\n                        else\n                        {\n                            if (ctorEnumerator == null)\n                            {\n                                this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.DeserializingConstructorParameterTypeMismatch, GetLocation(item)));\n                                return null;\n                            }\n\n                            ctor = null;\n                            continue;\n                        }\n                    }\n\n                    ctorParamIndex++;\n                }\n            }\n            while (TryGetNextConstructor(ctorEnumerator, ref ctor));\n\n            if (ctor == null)\n            {\n                this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.NoDeserializingConstructor, GetIdentifierLocation(formattedType)));\n            }\n        }\n\n        var hasSerializationConstructor = formattedType.AllInterfaces.Any(x => x.ApproximatelyEqual(this.typeReferences.IMessagePackSerializationCallbackReceiver));\n        var needsCastOnBefore = true;\n        var needsCastOnAfter = true;\n        if (hasSerializationConstructor)\n        {\n            needsCastOnBefore = !formattedType.GetMembers(\"OnBeforeSerialize\").Any();\n            needsCastOnAfter = !formattedType.GetMembers(\"OnAfterDeserialize\").Any();\n        }\n\n        if (contractAttr is null)\n        {\n            if (formattedType.IsDefinition)\n            {\n                Location location = callerSymbol is not null ? callerSymbol.Locations[0] : formattedType.Locations[0];\n                var targetName = callerSymbol is not null ? callerSymbol.ContainingType.Name + \".\" + callerSymbol.Name : formattedType.Name;\n\n                ImmutableDictionary<string, string?> typeInfo = ImmutableDictionary.Create<string, string?>().Add(\"type\", formattedType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));\n                this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.TypeMustBeMessagePackObject, location, typeInfo, targetName));\n            }\n\n            // Indicate to our caller that we don't have a valid object.\n            return null;\n        }\n\n        if (allowPrivateAttribute is not true && (nonPublicMembersAreSerialized || ctor is { DeclaredAccessibility: not Accessibility.Public } || formattedType.GetEffectiveAccessibility() is not Accessibility.Public))\n        {\n            if (contractAttr.ApplicationSyntaxReference?.GetSyntax(this.cancellationToken) is AttributeSyntax attSyntax)\n            {\n                Location location = attSyntax.GetLocation();\n\n                // If the user is explicitly setting AllowPrivate = false, set the location more precisely.\n                if (allowPrivateAttribute is false)\n                {\n                    location = attSyntax.ArgumentList?.Arguments.First(a => a.NameEquals?.Name.Identifier.ValueText == Constants.AllowPrivatePropertyName)?.Expression.GetLocation() ?? location;\n                }\n\n                this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.MessagePackObjectAllowPrivateRequired, location));\n            }\n        }\n\n        // Do not source generate the formatter for this type if the attribute opted out.\n        if (suppressSourceGeneration is true)\n        {\n            // Skip any source generation\n            return null;\n        }\n\n        // If any property had a private setter and does not appear in the deserializing constructor signature,\n        // we'll need a nested formatter.\n        foreach (IPropertySymbol property in nestedFormatterRequiredIfPropertyIsNotSetByDeserializingCtor)\n        {\n            nestedFormatterRequired |= !constructorParameters.Any(m => m.Name == property.Name);\n        }\n\n        if (nestedFormatterRequired && nonPublicMembersAreSerialized)\n        {\n            // If the data type or any nesting types are not declared with partial, we cannot emit the formatter as a nested type within the data type\n            // as required in order to access the private members.\n            bool anyNonPartialTypesFound = false;\n            BaseTypeDeclarationSyntax[] nonPartialTypes = FindNonPartialTypes(formattedType).ToArray();\n            if (nonPartialTypes.Length > 0)\n            {\n                BaseTypeDeclarationSyntax? targetType = formattedType.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() as BaseTypeDeclarationSyntax;\n                Location? primaryLocation = targetType?.Identifier.GetLocation();\n                Location[]? addlLocations = nonPartialTypes.Where(t => t != targetType).Select(t => t.Identifier.GetLocation()).ToArray();\n                this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.PartialTypeRequired, primaryLocation, (IEnumerable<Location>?)addlLocations));\n                anyNonPartialTypesFound = true;\n            }\n\n            if (anyNonPartialTypesFound)\n            {\n                return null;\n            }\n        }\n\n        INamedTypeSymbol? formattedTypeDefinition = formattedType.IsGenericType ? formattedType.ConstructUnboundGenericType() : null;\n        ObjectSerializationInfo info = ObjectSerializationInfo.Create(\n            formattedType,\n            isClass: isClass,\n            nestedFormatterRequired: nestedFormatterRequired,\n            genericTypeParameters: formattedType.IsGenericType ? formattedType.TypeParameters.Select(t => GenericTypeParameterInfo.Create(t)).ToArray() : Array.Empty<GenericTypeParameterInfo>(),\n            constructorParameters: constructorParameters.ToArray(),\n            isIntKey: isIntKey,\n            members: isIntKey ? intMembers.Values.Select(v => v.Info).ToArray() : stringMembers.Values.Select(v => v.Info).ToArray(),\n            hasIMessagePackSerializationCallbackReceiver: hasSerializationConstructor,\n            needsCastOnAfter: needsCastOnAfter,\n            needsCastOnBefore: needsCastOnBefore,\n            this.options.Generator.Resolver);\n\n        return info;\n    }"
+      },
+      "after": {
+        "signature": "private ObjectSerializationInfo? GetObjectInfo(INamedTypeSymbol formattedType, ISymbol? callerSymbol)",
+        "accessibility": "private",
+        "publicApi": false,
+        "attributes": [],
+        "startLine": 700,
+        "endLine": 1419,
+        "text": "    private ObjectSerializationInfo? GetObjectInfo(INamedTypeSymbol formattedType, ISymbol? callerSymbol)\n    {\n        var isClass = !formattedType.IsValueType;\n        bool nestedFormatterRequired = false;\n        List<IPropertySymbol> nestedFormatterRequiredIfPropertyIsNotSetByDeserializingCtor = new();\n\n        AttributeData? contractAttr = formattedType.GetAttributes().FirstOrDefault(x => x.AttributeClass.ApproximatelyEqual(this.typeReferences.MessagePackObjectAttribute));\n\n        // Examine properties set on the attribute such that we can discern whether they were explicitly set or not.\n        // This is useful when we have assembly-level attributes or other environmentally-controlled defaults that the attribute may override either direction.\n        bool? suppressSourceGeneration = (bool?)contractAttr?.NamedArguments.FirstOrDefault(kvp => kvp.Key == Constants.SuppressSourceGenerationPropertyName).Value.Value;\n        bool? allowPrivateAttribute = (bool?)contractAttr?.NamedArguments.FirstOrDefault(kvp => kvp.Key == Constants.AllowPrivatePropertyName).Value.Value;\n\n        if (contractAttr is null)\n        {\n            ////this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.TypeMustBeMessagePackObject, ((BaseTypeDeclarationSyntax)type.DeclaringSyntaxReferences[0].GetSyntax()).Identifier.GetLocation(), type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)));\n        }\n\n        bool isIntKey = true;\n        Dictionary<int, (MemberSerializationInfo Info, ITypeSymbol TypeSymbol)> intMembers = new();\n        Dictionary<string, (MemberSerializationInfo Info, ITypeSymbol TypeSymbol)> stringMembers = new();\n\n        // We default to not requiring non-public members to be attributed,\n        // but as soon as the first non-public member *is* attributed,\n        // we'll require all non-public members to be attributed.\n        // Historically, only public members were able to be serialized by default,\n        // so the analyzer only highlighted missing attributes on public members.\n        // But once it's clear that the developer is serializing non-public members,\n        // we need to raise the bar for all non-public members.\n        bool nonPublicMembersAreSerialized = false;\n        List<Diagnostic> deferredDiagnosticsForNonPublicMembers = new();\n\n        FormatterDescriptor? GetSpecialFormatter(ISymbol member)\n        {\n            INamedTypeSymbol? name = member.GetAttributes().FirstOrDefault(x => x.AttributeClass.ApproximatelyEqual(this.typeReferences.FormatterAttribute))?.ConstructorArguments[0].Value as INamedTypeSymbol;\n            if (name is not null)\n            {\n                if (FormatterDescriptor.TryCreate(name, out FormatterDescriptor? descriptor))\n                {\n                    return descriptor;\n                }\n                else\n                {\n                    // Report that the named type is not a formatter.\n                    // this.reportDiagnostic();\n                }\n            }\n\n            return null;\n        }\n\n        HashSet<Diagnostic> reportedDiagnostics = new();\n        IEnumerable<ISymbol> instanceMembers = formattedType.GetAllMembers()\n            .Where(m => m is IFieldSymbol or IPropertySymbol && !(m.IsStatic || m.IsOverride || m.IsImplicitlyDeclared));\n\n        // The actual member identifiers of each serializable member,\n        // such that we'll recognize collisions as we enumerate members in base types\n        // and record that that happened so that the emitted source generator can apply the necessary casts.\n        // In particular this does NOT store substitute names given by KeyAttribute.Name.\n        // Members should be added to this set after they are verified to be accessible, instance, non-override properties,\n        // whether or not those members are serialized.\n        HashSet<string> collidingMemberNames = new(StringComparer.Ordinal);\n        HashSet<string> observedMemberNames = new(StringComparer.Ordinal);\n        foreach (ISymbol member in instanceMembers)\n        {\n            if (!observedMemberNames.Add(member.Name))\n            {\n                collidingMemberNames.Add(member.Name);\n            }\n        }\n\n        QualifiedNamedTypeName? GetDeclaringTypeIfColliding(ISymbol symbol) => collidingMemberNames.Contains(symbol.Name) && !SymbolEqualityComparer.Default.Equals(symbol.ContainingType, formattedType) ? new(symbol.ContainingType) : null;\n\n        if (this.options.Generator.Formatters.UsesMapMode || (contractAttr?.ConstructorArguments[0] is { Value: true }))\n        {\n            Dictionary<string, ISymbol> claimedKeys = new(StringComparer.Ordinal);\n            void ReportNonUniqueNameIfApplicable(ISymbol item, string stringKey)\n            {\n                if (claimedKeys.TryGetValue(stringKey, out ISymbol newSymbol))\n                {\n                    SyntaxNode? syntax = newSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(this.cancellationToken);\n                    var location = syntax switch\n                    {\n                        PropertyDeclarationSyntax { Identifier: SyntaxToken propertyId } => propertyId.GetLocation(),\n                        VariableDeclaratorSyntax { Identifier: SyntaxToken fieldId } => fieldId.GetLocation(),\n                        not null => syntax.GetLocation(),\n                        _ => null,\n                    };\n\n                    reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.CollidingMemberNamesInForceMapMode, location));\n                }\n\n                claimedKeys[stringKey] = item;\n            }\n\n            // All public members are serialize target except [Ignore] member.\n            // Include private members if the type opted into that.\n            Accessibility minimumAccessibility = allowPrivateAttribute is true ? Accessibility.Private : Accessibility.Public;\n            isIntKey = false;\n\n            var hiddenIntKey = 0;\n\n            foreach (ISymbol baseItem in instanceMembers)\n            {\n                switch (baseItem)\n                {\n                    case IPropertySymbol item:\n                        {\n                            ImmutableArray<AttributeData> attributes = item.GetAttributes();\n                            if (attributes.Any(x => (x.AttributeClass.ApproximatelyEqual(this.typeReferences.IgnoreAttribute) || x.AttributeClass?.Name == this.typeReferences.IgnoreDataMemberAttribute?.Name)) ||\n                                item.DeclaredAccessibility < minimumAccessibility)\n                            {\n                                continue;\n                            }\n\n                            bool isReadable = item.GetMethod is not null;\n                            bool isWritable = item.SetMethod is not null;\n                            if (!isReadable && !isWritable)\n                            {\n                                continue;\n                            }\n\n                            bool isInitOnly = item.SetMethod?.IsInitOnly is true;\n                            AttributeData? keyAttribute = attributes.FirstOrDefault(attributes => attributes.AttributeClass.ApproximatelyEqual(this.typeReferences.KeyAttribute));\n                            string stringKey = keyAttribute?.ConstructorArguments.Length == 1 && keyAttribute.ConstructorArguments[0].Value is string name ? name : item.Name;\n                            ReportNonUniqueNameIfApplicable(item, stringKey);\n\n                            nestedFormatterRequired |= item.GetMethod is not null && IsPartialTypeRequired(item.GetMethod.DeclaredAccessibility);\n                            nestedFormatterRequired |= item.SetMethod is not null && IsPartialTypeRequired(item.SetMethod.DeclaredAccessibility);\n                            FormatterDescriptor? specialFormatter = GetSpecialFormatter(item);\n                            MemberSerializationInfo member = new(true, isWritable, isReadable, isInitOnly, item.IsRequired, hiddenIntKey++, stringKey, item.Name, item.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), item.Type.ToDisplayString(BinaryWriteFormat), specialFormatter)\n                            {\n                                DeclaringType = GetDeclaringTypeIfColliding(item),\n                            };\n                            if (!stringMembers.ContainsKey(member.StringKey))\n                            {\n                                stringMembers.Add(member.StringKey, (member, item.Type));\n                            }\n\n                            if (specialFormatter is null)\n                            {\n                                this.CollectCore(item.Type, item); // recursive collect\n                            }\n                        }\n\n                        break;\n                    case IFieldSymbol item:\n                        {\n                            ImmutableArray<AttributeData> attributes = item.GetAttributes();\n                            if (attributes.Any(x => (x.AttributeClass.ApproximatelyEqual(this.typeReferences.IgnoreAttribute) || x.AttributeClass?.Name == this.typeReferences.IgnoreDataMemberAttribute?.Name)) ||\n                                item.DeclaredAccessibility < minimumAccessibility)\n                            {\n                                continue;\n                            }\n\n                            AttributeData? keyAttribute = attributes.FirstOrDefault(attributes => attributes.AttributeClass.ApproximatelyEqual(this.typeReferences.KeyAttribute));\n                            string stringKey = keyAttribute?.ConstructorArguments.Length == 1 && keyAttribute.ConstructorArguments[0].Value is string name ? name : item.Name;\n                            ReportNonUniqueNameIfApplicable(item, stringKey);\n\n                            nestedFormatterRequired |= IsPartialTypeRequired(item.DeclaredAccessibility);\n                            FormatterDescriptor? specialFormatter = GetSpecialFormatter(item);\n                            MemberSerializationInfo member = new(false, IsWritable: !item.IsReadOnly, IsReadable: true, IsInitOnly: false, item.IsRequired, hiddenIntKey++, stringKey, item.Name, item.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), item.Type.ToDisplayString(BinaryWriteFormat), specialFormatter)\n                            {\n                                DeclaringType = GetDeclaringTypeIfColliding(item),\n                            };\n                            if (!stringMembers.ContainsKey(member.StringKey))\n                            {\n                                stringMembers.Add(member.StringKey, (member, item.Type));\n                            }\n\n                            if (specialFormatter is null)\n                            {\n                                this.CollectCore(item.Type, item); // recursive collect\n                            }\n                        }\n\n                        break;\n                }\n            }\n        }\n        else\n        {\n            // Only KeyAttribute members\n            var searchFirst = true;\n            var hiddenIntKey = 0;\n\n            foreach (IPropertySymbol item in instanceMembers.OfType<IPropertySymbol>())\n            {\n                if (item.IsIndexer)\n                {\n                    continue; // .tt files don't generate good code for this yet: https://github.com/neuecc/MessagePack-CSharp/issues/390\n                }\n\n                if (item.GetAttributes().Any(x =>\n                {\n                    var typeReferencesIgnoreDataMemberAttribute = this.typeReferences.IgnoreDataMemberAttribute;\n                    return typeReferencesIgnoreDataMemberAttribute != null && (x.AttributeClass.ApproximatelyEqual(this.typeReferences.IgnoreAttribute) || x.AttributeClass.ApproximatelyEqual(typeReferencesIgnoreDataMemberAttribute));\n                }))\n                {\n                    nonPublicMembersAreSerialized |= (item.DeclaredAccessibility & Accessibility.Public) != Accessibility.Public;\n                    continue;\n                }\n\n                bool isReadable = item.GetMethod is not null;\n                bool isWritable = item.SetMethod is not null;\n                bool isInitOnly = item.SetMethod?.IsInitOnly is true;\n                if (!isReadable && !isWritable)\n                {\n                    continue;\n                }\n\n                FormatterDescriptor? specialFormatter = GetSpecialFormatter(item);\n                TypedConstant? key = item.GetAttributes().FirstOrDefault(x => x.AttributeClass.ApproximatelyEqual(this.typeReferences.KeyAttribute))?.ConstructorArguments[0];\n                if (key is null)\n                {\n                    if (contractAttr is not null)\n                    {\n                        // If the member is attributed with a type derived from KeyAttribute, that's incompatible with source generation\n                        // since we cannot know what the key is using only C# syntax and the semantic model.\n                        SyntaxReference? derivedKeyAttribute = item.GetAttributes().FirstOrDefault(att => att.AttributeClass.IsApproximatelyEqualOrDerivedFrom(this.typeReferences.KeyAttribute) == RoslynAnalyzerExtensions.EqualityMatch.LeftDerivesFromRight)?.ApplicationSyntaxReference;\n\n                        if (derivedKeyAttribute is null || suppressSourceGeneration is not true)\n                        {\n                            if (SymbolEqualityComparer.Default.Equals(item.ContainingType, formattedType))\n                            {\n                                var syntax = item.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax();\n                                var identifier = (syntax as PropertyDeclarationSyntax)?.Identifier ?? (syntax as ParameterSyntax)?.Identifier;\n\n                                Diagnostic diagnostic = derivedKeyAttribute is not null && suppressSourceGeneration is not true\n                                    ? Diagnostic.Create(MsgPack00xMessagePackAnalyzer.AOTDerivedKeyAttribute, derivedKeyAttribute.GetSyntax(this.cancellationToken).GetLocation())\n                                    : Diagnostic.Create(MsgPack00xMessagePackAnalyzer.MemberNeedsKey, identifier?.GetLocation(), formattedType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), item.Name);\n                                if (nonPublicMembersAreSerialized || (item.DeclaredAccessibility & Accessibility.Public) == Accessibility.Public)\n                                {\n                                    this.reportDiagnostic?.Invoke(diagnostic);\n                                }\n                                else\n                                {\n                                    deferredDiagnosticsForNonPublicMembers.Add(diagnostic);\n                                }\n                            }\n                            else if (formattedType.BaseType is not null)\n                            {\n                                // The member was inherited, so we raise a special error at the location of the base type reference.\n                                BaseTypeSyntax? baseSyntax = formattedType.DeclaringSyntaxReferences.SelectMany(sr => (IEnumerable<BaseTypeSyntax>?)((BaseTypeDeclarationSyntax)sr.GetSyntax()).BaseList?.Types ?? Array.Empty<BaseTypeSyntax>())\n                                    .FirstOrDefault(bt => SymbolEqualityComparer.Default.Equals(this.compilation.GetSemanticModel(bt.SyntaxTree).GetTypeInfo(bt.Type).Type, item.ContainingType));\n                                if (baseSyntax is not null)\n                                {\n                                    Diagnostic diagnostic = derivedKeyAttribute is not null && suppressSourceGeneration is not true\n                                        ? Diagnostic.Create(MsgPack00xMessagePackAnalyzer.AOTDerivedKeyAttribute, baseSyntax.GetLocation())\n                                        : Diagnostic.Create(\n                                            MsgPack00xMessagePackAnalyzer.BaseTypeContainsUnattributedPublicMembers,\n                                            baseSyntax.GetLocation(),\n                                            item.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),\n                                            item.Name);\n                                    if (reportedDiagnostics.Add(diagnostic))\n                                    {\n                                        if (nonPublicMembersAreSerialized || (item.DeclaredAccessibility & Accessibility.Public) == Accessibility.Public)\n                                        {\n                                            this.reportDiagnostic?.Invoke(diagnostic);\n                                        }\n                                        else\n                                        {\n                                            deferredDiagnosticsForNonPublicMembers.Add(diagnostic);\n                                        }\n                                    }\n                                }\n                            }\n                        }\n                    }\n                }\n                else\n                {\n                    // If this attributed member is non-public, then all non-public members should be attributed.\n                    nonPublicMembersAreSerialized |= (item.DeclaredAccessibility & Accessibility.Public) != Accessibility.Public;\n\n                    nestedFormatterRequired |= item.GetMethod is not null && IsPartialTypeRequired(item.GetMethod.DeclaredAccessibility);\n                    if (item.SetMethod is not null && IsPartialTypeRequired(item.SetMethod.DeclaredAccessibility))\n                    {\n                        nestedFormatterRequiredIfPropertyIsNotSetByDeserializingCtor.Add(item);\n                    }\n\n                    var intKey = key is { Value: int intKeyValue } ? intKeyValue : default(int?);\n                    var stringKey = key is { Value: string stringKeyValue } ? stringKeyValue : default;\n                    if (intKey == null && stringKey == null)\n                    {\n                        this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.BothStringAndIntKeyAreNull, ((PropertyDeclarationSyntax?)item.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax())?.Identifier.GetLocation(), formattedType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), item.Name));\n                    }\n\n                    // A property with an init accessor and an initializer has a default that will be discarded by the deserializer.\n                    if (suppressSourceGeneration is not true && isInitOnly)\n                    {\n                        EqualsValueClauseSyntax? initializer = item.DeclaringSyntaxReferences.Select(s => (s.GetSyntax(this.cancellationToken) as PropertyDeclarationSyntax)?.Initializer).FirstOrDefault(i => i is not null);\n                        if (initializer is not null)\n                        {\n                            this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.AOTInitProperty, initializer.GetLocation()));\n                        }\n                    }\n\n                    if (searchFirst)\n                    {\n                        searchFirst = false;\n                        isIntKey = intKey != null;\n                    }\n                    else\n                    {\n                        if ((isIntKey && intKey == null) || (!isIntKey && stringKey == null))\n                        {\n                            this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.DoNotMixStringAndIntKeys, item.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax().GetLocation()));\n                        }\n                    }\n\n                    if (isIntKey)\n                    {\n                        if (intMembers.ContainsKey(intKey!.Value))\n                        {\n                            this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.KeysMustBeUnique, item.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax().GetLocation()));\n                        }\n\n                        var member = new MemberSerializationInfo(true, isWritable, isReadable, isInitOnly, item.IsRequired, intKey!.Value, item.Name, item.Name, item.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), item.Type.ToDisplayString(BinaryWriteFormat), specialFormatter)\n                        {\n                            DeclaringType = GetDeclaringTypeIfColliding(item),\n                        };\n                        intMembers.Add(member.IntKey, (member, item.Type));\n                    }\n                    else if (stringKey is not null)\n                    {\n                        if (stringMembers.ContainsKey(stringKey!))\n                        {\n                            this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.KeysMustBeUnique, item.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax().GetLocation()));\n                        }\n\n                        var member = new MemberSerializationInfo(true, isWritable, isReadable, isInitOnly, item.IsRequired, hiddenIntKey++, stringKey!, item.Name, item.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), item.Type.ToDisplayString(BinaryWriteFormat), specialFormatter)\n                        {\n                            DeclaringType = GetDeclaringTypeIfColliding(item),\n                        };\n                        stringMembers.Add(member.StringKey, (member, item.Type));\n                    }\n\n                    var messagePackFormatter = item.GetAttributes().FirstOrDefault(x => x.AttributeClass.ApproximatelyEqual(this.typeReferences.FormatterAttribute))?.ConstructorArguments[0];\n\n                    if (messagePackFormatter == null)\n                    {\n                        // recursive collect\n                        this.CollectCore(item.Type, item);\n                    }\n                }\n            }\n\n            foreach (IFieldSymbol item in formattedType.GetAllMembers().OfType<IFieldSymbol>())\n            {\n                // Compiler-generated fields (e.g. auto-property backing fields) of types from metadata are not reported as implicitly declared.\n                if (item.IsImplicitlyDeclared || item.IsStatic || !item.CanBeReferencedByName)\n                {\n                    continue;\n                }\n\n                if (item.GetAttributes().Any(x => x.AttributeClass.ApproximatelyEqual(this.typeReferences.IgnoreAttribute)))\n                {\n                    nonPublicMembersAreSerialized |= (item.DeclaredAccessibility & Accessibility.Public) != Accessibility.Public;\n                    continue;\n                }\n\n                FormatterDescriptor? specialFormatter = GetSpecialFormatter(item);\n                TypedConstant? key = item.GetAttributes().FirstOrDefault(x => x.AttributeClass.ApproximatelyEqual(this.typeReferences.KeyAttribute))?.ConstructorArguments[0];\n                if (key is null)\n                {\n                    if (contractAttr is not null)\n                    {\n                        // If the member is attributed with a type derived from KeyAttribute, that's incompatible with source generation\n                        // since we cannot know what the key is using only C# syntax and the semantic model.\n                        SyntaxReference? derivedKeyAttribute = item.GetAttributes().FirstOrDefault(att => att.AttributeClass.IsApproximatelyEqualOrDerivedFrom(this.typeReferences.KeyAttribute) == RoslynAnalyzerExtensions.EqualityMatch.LeftDerivesFromRight)?.ApplicationSyntaxReference;\n\n                        if (derivedKeyAttribute is null || suppressSourceGeneration is not true)\n                        {\n                            if (SymbolEqualityComparer.Default.Equals(item.ContainingType, formattedType))\n                            {\n                                Diagnostic diagnostic = derivedKeyAttribute is not null && suppressSourceGeneration is not true\n                                    ? Diagnostic.Create(MsgPack00xMessagePackAnalyzer.AOTDerivedKeyAttribute, derivedKeyAttribute.GetSyntax(this.cancellationToken).GetLocation())\n                                    : Diagnostic.Create(MsgPack00xMessagePackAnalyzer.MemberNeedsKey, item.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax().GetLocation(), formattedType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), item.Name);\n                                if (nonPublicMembersAreSerialized || (item.DeclaredAccessibility & Accessibility.Public) == Accessibility.Public)\n                                {\n                                    this.reportDiagnostic?.Invoke(diagnostic);\n                                }\n                                else\n                                {\n                                    deferredDiagnosticsForNonPublicMembers.Add(diagnostic);\n                                }\n                            }\n                            else if (formattedType.BaseType is not null)\n                            {\n                                // The member was inherited, so we raise a special error at the location of the base type reference.\n                                BaseTypeSyntax? baseSyntax = formattedType.DeclaringSyntaxReferences.SelectMany(sr => (IEnumerable<BaseTypeSyntax>?)((BaseTypeDeclarationSyntax)sr.GetSyntax()).BaseList?.Types ?? Array.Empty<BaseTypeSyntax>())\n                                    .FirstOrDefault(bt => SymbolEqualityComparer.Default.Equals(this.compilation.GetSemanticModel(bt.SyntaxTree).GetTypeInfo(bt.Type).Type, item.ContainingType));\n                                if (baseSyntax is not null)\n                                {\n                                    Diagnostic diagnostic = derivedKeyAttribute is not null && suppressSourceGeneration is not true\n                                        ? Diagnostic.Create(MsgPack00xMessagePackAnalyzer.AOTDerivedKeyAttribute, baseSyntax.GetLocation())\n                                        : Diagnostic.Create(\n                                            MsgPack00xMessagePackAnalyzer.BaseTypeContainsUnattributedPublicMembers,\n                                            baseSyntax.GetLocation(),\n                                            item.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),\n                                            item.Name);\n                                    if (reportedDiagnostics.Add(diagnostic))\n                                    {\n                                        if (nonPublicMembersAreSerialized || (item.DeclaredAccessibility & Accessibility.Public) == Accessibility.Public)\n                                        {\n                                            this.reportDiagnostic?.Invoke(diagnostic);\n                                        }\n                                        else\n                                        {\n                                            deferredDiagnosticsForNonPublicMembers.Add(diagnostic);\n                                        }\n                                    }\n                                }\n                            }\n                        }\n                    }\n                }\n                else\n                {\n                    // If this attributed member is non-public, then all non-public members should be attributed.\n                    nonPublicMembersAreSerialized |= (item.DeclaredAccessibility & Accessibility.Public) != Accessibility.Public;\n\n                    nestedFormatterRequired |= IsPartialTypeRequired(item.DeclaredAccessibility);\n\n                    var intKey = key is { Value: int intKeyValue } ? intKeyValue : default(int?);\n                    var stringKey = key is { Value: string stringKeyValue } ? stringKeyValue : default;\n                    if (intKey == null && stringKey == null)\n                    {\n                        this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.BothStringAndIntKeyAreNull, item.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax().GetLocation()));\n                    }\n\n                    if (searchFirst)\n                    {\n                        searchFirst = false;\n                        isIntKey = intKey != null;\n                    }\n                    else\n                    {\n                        if ((isIntKey && intKey == null) || (!isIntKey && stringKey == null))\n                        {\n                            this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.DoNotMixStringAndIntKeys, item.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax().GetLocation()));\n                        }\n                    }\n\n                    if (isIntKey)\n                    {\n                        if (intMembers.ContainsKey(intKey!.Value))\n                        {\n                            this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.KeysMustBeUnique, item.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax().GetLocation()));\n                        }\n\n                        var member = new MemberSerializationInfo(true, IsWritable: !item.IsReadOnly, IsReadable: true, IsInitOnly: false, item.IsRequired, intKey!.Value, item.Name, item.Name, item.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), item.Type.ToDisplayString(BinaryWriteFormat), specialFormatter)\n                        {\n                            DeclaringType = GetDeclaringTypeIfColliding(item),\n                        };\n                        intMembers.Add(member.IntKey, (member, item.Type));\n                    }\n                    else\n                    {\n                        if (stringMembers.ContainsKey(stringKey!))\n                        {\n                            this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.KeysMustBeUnique, item.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax().GetLocation()));\n                        }\n\n                        var member = new MemberSerializationInfo(true, IsWritable: !item.IsReadOnly, IsReadable: true, IsInitOnly: false, item.IsRequired, hiddenIntKey++, stringKey!, item.Name, item.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), item.Type.ToDisplayString(BinaryWriteFormat), specialFormatter)\n                        {\n                            DeclaringType = GetDeclaringTypeIfColliding(item),\n                        };\n                        stringMembers.Add(member.StringKey, (member, item.Type));\n                    }\n\n                    var messagePackFormatter = item.GetAttributes().FirstOrDefault(x => x.AttributeClass.ApproximatelyEqual(this.typeReferences.FormatterAttribute))?.ConstructorArguments[0];\n\n                    if (messagePackFormatter == null)\n                    {\n                        // recursive collect\n                        this.CollectCore(item.Type, item);\n                    }\n                }\n            }\n        }\n\n        // If we discovered midway through that we should be reporting diagnostics for non-public members,\n        // report the ones we missed along the way.\n        if ((nonPublicMembersAreSerialized || allowPrivateAttribute is true) && this.reportDiagnostic is not null)\n        {\n            foreach (Diagnostic deferred in deferredDiagnosticsForNonPublicMembers)\n            {\n                this.reportDiagnostic(deferred);\n            }\n        }\n\n        // GetConstructor\n        var ctorEnumerator = default(IEnumerator<IMethodSymbol>);\n        var ctor = formattedType.Constructors.SingleOrDefault(x => x.GetAttributes().Any(y => y.AttributeClass != null && y.AttributeClass.ApproximatelyEqual(this.typeReferences.SerializationConstructorAttribute)));\n        if (ctor is null)\n        {\n            ctorEnumerator = formattedType.Constructors\n                .OrderByDescending(x => x.DeclaredAccessibility)\n                .ThenByDescending(x => x.Parameters.Length)\n                .GetEnumerator();\n\n            if (ctorEnumerator.MoveNext())\n            {\n                ctor = ctorEnumerator.Current;\n            }\n        }\n\n        // struct allows null ctor\n        if (ctor is null && isClass)\n        {\n            this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.NoDeserializingConstructor, GetIdentifierLocation(formattedType)));\n            return null;\n        }\n\n        var constructorParameters = new List<MemberSerializationInfo>();\n        if (ctor is not null)\n        {\n            nestedFormatterRequired |= IsPartialTypeRequired(ctor.DeclaredAccessibility);\n\n            var constructorLookupDictionary = stringMembers.ToLookup(x => x.Value.Info.Name, x => x, StringComparer.OrdinalIgnoreCase);\n            IReadOnlyDictionary<int, (MemberSerializationInfo Info, ITypeSymbol TypeSymbol)> ctorParamIndexIntMembersDictionary = intMembers\n                .OrderBy(x => x.Key).Select((x, i) => (Key: x.Value, Index: i))\n                .ToDictionary(x => x.Index, x => x.Key);\n            do\n            {\n                constructorParameters.Clear();\n                var ctorParamIndex = 0;\n                foreach (IParameterSymbol item in ctor!.Parameters)\n                {\n                    if (isIntKey)\n                    {\n                        if (ctorParamIndexIntMembersDictionary.TryGetValue(ctorParamIndex, out (MemberSerializationInfo Info, ITypeSymbol TypeSymbol) member))\n                        {\n                            if (this.compilation.ClassifyConversion(member.TypeSymbol, item.Type) is { IsImplicit: true } && member.Info.IsReadable)\n                            {\n                                constructorParameters.Add(member.Info);\n                            }\n                            else\n                            {\n                                if (ctorEnumerator != null)\n                                {\n                                    ctor = null;\n                                    continue;\n                                }\n                                else\n                                {\n                                    this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.DeserializingConstructorParameterTypeMismatch, GetLocation(item)));\n                                    return null;\n                                }\n                            }\n                        }\n                        else\n                        {\n                            if (ctorEnumerator != null)\n                            {\n                                ctor = null;\n                                continue;\n                            }\n                            else\n                            {\n                                this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.DeserializingConstructorParameterIndexMissing, GetParameterListLocation(ctor)));\n                                return null;\n                            }\n                        }\n                    }\n                    else\n                    {\n                        IEnumerable<KeyValuePair<string, (MemberSerializationInfo Info, ITypeSymbol TypeSymbol)>> hasKey = constructorLookupDictionary[item.Name];\n                        using var enumerator = hasKey.GetEnumerator();\n\n                        // hasKey.Count() == 0\n                        if (!enumerator.MoveNext())\n                        {\n                            if (ctorEnumerator == null)\n                            {\n                                this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.DeserializingConstructorParameterNameMissing, GetParameterListLocation(ctor)));\n                                return null;\n                            }\n\n                            ctor = null;\n                            continue;\n                        }\n\n                        var first = enumerator.Current.Value;\n\n                        // hasKey.Count() != 1\n                        if (enumerator.MoveNext())\n                        {\n                            if (ctorEnumerator == null)\n                            {\n                                this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.DeserializingConstructorParameterNameDuplicate, GetLocation(item)));\n                                return null;\n                            }\n\n                            ctor = null;\n                            continue;\n                        }\n\n                        MemberSerializationInfo paramMember = first.Info;\n                        if (item.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == paramMember.Type && paramMember.IsReadable)\n                        {\n                            constructorParameters.Add(paramMember);\n                        }\n                        else\n                        {\n                            if (ctorEnumerator == null)\n                            {\n                                this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.DeserializingConstructorParameterTypeMismatch, GetLocation(item)));\n                                return null;\n                            }\n\n                            ctor = null;\n                            continue;\n                        }\n                    }\n\n                    ctorParamIndex++;\n                }\n            }\n            while (TryGetNextConstructor(ctorEnumerator, ref ctor));\n\n            if (ctor == null)\n            {\n                this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.NoDeserializingConstructor, GetIdentifierLocation(formattedType)));\n            }\n        }\n\n        var hasSerializationConstructor = formattedType.AllInterfaces.Any(x => x.ApproximatelyEqual(this.typeReferences.IMessagePackSerializationCallbackReceiver));\n        var needsCastOnBefore = true;\n        var needsCastOnAfter = true;\n        if (hasSerializationConstructor)\n        {\n            needsCastOnBefore = !formattedType.GetMembers(\"OnBeforeSerialize\").Any();\n            needsCastOnAfter = !formattedType.GetMembers(\"OnAfterDeserialize\").Any();\n        }\n\n        if (contractAttr is null)\n        {\n            if (formattedType.IsDefinition)\n            {\n                Location location = callerSymbol is not null ? callerSymbol.Locations[0] : formattedType.Locations[0];\n                var targetName = callerSymbol is not null ? callerSymbol.ContainingType.Name + \".\" + callerSymbol.Name : formattedType.Name;\n\n                ImmutableDictionary<string, string?> typeInfo = ImmutableDictionary.Create<string, string?>().Add(\"type\", formattedType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));\n                this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.TypeMustBeMessagePackObject, location, typeInfo, targetName));\n            }\n\n            // Indicate to our caller that we don't have a valid object.\n            return null;\n        }\n\n        if (allowPrivateAttribute is not true && (nonPublicMembersAreSerialized || ctor is { DeclaredAccessibility: not Accessibility.Public } || formattedType.GetEffectiveAccessibility() is not Accessibility.Public))\n        {\n            if (contractAttr.ApplicationSyntaxReference?.GetSyntax(this.cancellationToken) is AttributeSyntax attSyntax)\n            {\n                Location location = attSyntax.GetLocation();\n\n                // If the user is explicitly setting AllowPrivate = false, set the location more precisely.\n                if (allowPrivateAttribute is false)\n                {\n                    location = attSyntax.ArgumentList?.Arguments.First(a => a.NameEquals?.Name.Identifier.ValueText == Constants.AllowPrivatePropertyName)?.Expression.GetLocation() ?? location;\n                }\n\n                this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.MessagePackObjectAllowPrivateRequired, location));\n            }\n        }\n\n        // Do not source generate the formatter for this type if the attribute opted out.\n        if (suppressSourceGeneration is true)\n        {\n            // Skip any source generation\n            return null;\n        }\n\n        // If any property had a private setter and does not appear in the deserializing constructor signature,\n        // we'll need a nested formatter.\n        foreach (IPropertySymbol property in nestedFormatterRequiredIfPropertyIsNotSetByDeserializingCtor)\n        {\n            nestedFormatterRequired |= !constructorParameters.Any(m => m.Name == property.Name);\n        }\n\n        if (nestedFormatterRequired && nonPublicMembersAreSerialized)\n        {\n            // If the data type or any nesting types are not declared with partial, we cannot emit the formatter as a nested type within the data type\n            // as required in order to access the private members.\n            bool anyNonPartialTypesFound = false;\n            BaseTypeDeclarationSyntax[] nonPartialTypes = FindNonPartialTypes(formattedType).ToArray();\n            if (nonPartialTypes.Length > 0)\n            {\n                BaseTypeDeclarationSyntax? targetType = formattedType.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() as BaseTypeDeclarationSyntax;\n                Location? primaryLocation = targetType?.Identifier.GetLocation();\n                Location[]? addlLocations = nonPartialTypes.Where(t => t != targetType).Select(t => t.Identifier.GetLocation()).ToArray();\n                this.reportDiagnostic?.Invoke(Diagnostic.Create(MsgPack00xMessagePackAnalyzer.PartialTypeRequired, primaryLocation, (IEnumerable<Location>?)addlLocations));\n                anyNonPartialTypesFound = true;\n            }\n\n            if (anyNonPartialTypesFound)\n            {\n                return null;\n            }\n        }\n\n        INamedTypeSymbol? formattedTypeDefinition = formattedType.IsGenericType ? formattedType.ConstructUnboundGenericType() : null;\n        ObjectSerializationInfo info = ObjectSerializationInfo.Create(\n            formattedType,\n            isClass: isClass,\n            nestedFormatterRequired: nestedFormatterRequired,\n            genericTypeParameters: formattedType.IsGenericType ? formattedType.TypeParameters.Select(t => GenericTypeParameterInfo.Create(t)).ToArray() : Array.Empty<GenericTypeParameterInfo>(),\n            constructorParameters: constructorParameters.ToArray(),\n            isIntKey: isIntKey,\n            members: isIntKey ? intMembers.Values.Select(v => v.Info).ToArray() : stringMembers.Values.Select(v => v.Info).ToArray(),\n            hasIMessagePackSerializationCallbackReceiver: hasSerializationConstructor,\n            needsCastOnAfter: needsCastOnAfter,\n            needsCastOnBefore: needsCastOnBefore,\n            this.options.Generator.Resolver);\n\n        return info;\n    }"
+      }
+    }
+  ],
+  "newTests": [
+    {
+      "key": "GenericsFormatterTests.GenericValueTypes_Defined_In_MetadataReference()",
+      "file": "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs",
+      "reaches": [
+        "TypeCollector.GetObjectInfo"
+      ]
+    },
+    {
+      "key": "GenericsFormatterTests.CompileToMetadataReferenceAsync(string)",
+      "file": "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs",
+      "reaches": []
+    },
+    {
+      "key": "MessagePack.GeneratedMessagePackResolver.App.CmdFormatter.Serialize(MsgPack::MessagePackWriter,global::App.Cmd,MsgPack::MessagePackSerializerOptions)",
+      "file": "tests/MessagePack.SourceGenerator.Tests/Resources/GenericValueTypes_Defined_In_MetadataReference/Formatters.MessagePack.GeneratedMessagePackResolver.App.CmdFormatter.g.cs",
+      "reaches": []
+    },
+    {
+      "key": "MessagePack.GeneratedMessagePackResolver.App.CmdFormatter.Deserialize(MsgPack::MessagePackReader,MsgPack::MessagePackSerializerOptions)",
+      "file": "tests/MessagePack.SourceGenerator.Tests/Resources/GenericValueTypes_Defined_In_MetadataReference/Formatters.MessagePack.GeneratedMessagePackResolver.App.CmdFormatter.g.cs",
+      "reaches": []
+    },
+    {
+      "key": "MessagePack.GeneratedMessagePackResolver.Lib.ItemFormatter`1.Serialize(MsgPack::MessagePackWriter,global::Lib.Item<T>,MsgPack::MessagePackSerializerOptions)",
+      "file": "tests/MessagePack.SourceGenerator.Tests/Resources/GenericValueTypes_Defined_In_MetadataReference/Formatters.MessagePack.GeneratedMessagePackResolver.Lib.ItemFormatter`1.g.cs",
+      "reaches": []
+    },
+    {
+      "key": "MessagePack.GeneratedMessagePackResolver.Lib.ItemFormatter`1.Deserialize(MsgPack::MessagePackReader,MsgPack::MessagePackSerializerOptions)",
+      "file": "tests/MessagePack.SourceGenerator.Tests/Resources/GenericValueTypes_Defined_In_MetadataReference/Formatters.MessagePack.GeneratedMessagePackResolver.Lib.ItemFormatter`1.g.cs",
+      "reaches": []
+    },
+    {
+      "key": "MessagePack.GeneratedMessagePackResolver.Lib.PairFormatter`1.Serialize(MsgPack::MessagePackWriter,global::Lib.Pair<T>,MsgPack::MessagePackSerializerOptions)",
+      "file": "tests/MessagePack.SourceGenerator.Tests/Resources/GenericValueTypes_Defined_In_MetadataReference/Formatters.MessagePack.GeneratedMessagePackResolver.Lib.PairFormatter`1.g.cs",
+      "reaches": []
+    },
+    {
+      "key": "MessagePack.GeneratedMessagePackResolver.Lib.PairFormatter`1.Deserialize(MsgPack::MessagePackReader,MsgPack::MessagePackSerializerOptions)",
+      "file": "tests/MessagePack.SourceGenerator.Tests/Resources/GenericValueTypes_Defined_In_MetadataReference/Formatters.MessagePack.GeneratedMessagePackResolver.Lib.PairFormatter`1.g.cs",
+      "reaches": []
+    },
+    {
+      "key": "MessagePack.GeneratedMessagePackResolver.GetFormatter`1()",
+      "file": "tests/MessagePack.SourceGenerator.Tests/Resources/GenericValueTypes_Defined_In_MetadataReference/MessagePack.GeneratedMessagePackResolver.g.cs",
+      "reaches": []
+    },
+    {
+      "key": "MessagePack.GeneratedMessagePackResolver.GeneratedMessagePackResolverGetFormatterHelper.GetFormatter(global::System.Type)",
+      "file": "tests/MessagePack.SourceGenerator.Tests/Resources/GenericValueTypes_Defined_In_MetadataReference/MessagePack.GeneratedMessagePackResolver.g.cs",
+      "reaches": []
+    }
+  ],
+  "claims": [
+    {
+      "id": "scope",
+      "decidedBy": "requirement",
+      "text": "Every changed file is inside the expected scope of REQ-2283.",
+      "status": "verified",
+      "evidence": [
+        {
+          "label": "6 files match",
+          "detail": "src/MessagePack.SourceGenerator/CodeAnalysis/**, tests/MessagePack.SourceGenerator.Tests/**, README.md, doc/analyzers/**"
+        }
+      ]
+    },
+    {
+      "id": "public-api",
+      "decidedBy": "roslyn-ast",
+      "text": "No public API is added, removed or changed.",
+      "status": "verified",
+      "evidence": [
+        {
+          "label": "accessibility of every changed member",
+          "detail": "TypeCollector.GetObjectInfo: private"
+        }
+      ]
+    },
+    {
+      "id": "tests-reach",
+      "decidedBy": "schema-graph",
+      "text": "Every changed member is reached by at least one test in the call graph.",
+      "status": "verified",
+      "evidence": [
+        {
+          "label": "reached",
+          "ref": "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.GetObjectInfo(INamedTypeSymbol,ISymbol?)",
+          "detail": "GenericsFormatterTests.GenericValueTypes_Defined_In_MetadataReference → SourceGenerator.MessagePackGenerator → MessagePackGenerator.Initialize → TypeCollector.Collect → TypeCollector.Collect → TypeCollector.CollectCore → TypeCollector.CollectGeneric → TypeCollector.GetObjectInfo"
+        }
+      ]
+    },
+    {
+      "id": "adds-tests",
+      "decidedBy": "roslyn-ast",
+      "text": "The change adds tests for its own behaviour.",
+      "status": "verified",
+      "evidence": [
+        {
+          "label": "reaches TypeCollector.GetObjectInfo",
+          "ref": "GenericsFormatterTests.GenericValueTypes_Defined_In_MetadataReference()"
+        },
+        {
+          "label": "reaches no changed member",
+          "ref": "GenericsFormatterTests.CompileToMetadataReferenceAsync(string)"
+        },
+        {
+          "label": "reaches no changed member",
+          "ref": "MessagePack.GeneratedMessagePackResolver.App.CmdFormatter.Serialize(MsgPack::MessagePackWriter,global::App.Cmd,MsgPack::MessagePackSerializerOptions)"
+        },
+        {
+          "label": "reaches no changed member",
+          "ref": "MessagePack.GeneratedMessagePackResolver.App.CmdFormatter.Deserialize(MsgPack::MessagePackReader,MsgPack::MessagePackSerializerOptions)"
+        },
+        {
+          "label": "reaches no changed member",
+          "ref": "MessagePack.GeneratedMessagePackResolver.Lib.ItemFormatter`1.Serialize(MsgPack::MessagePackWriter,global::Lib.Item<T>,MsgPack::MessagePackSerializerOptions)"
+        },
+        {
+          "label": "reaches no changed member",
+          "ref": "MessagePack.GeneratedMessagePackResolver.Lib.ItemFormatter`1.Deserialize(MsgPack::MessagePackReader,MsgPack::MessagePackSerializerOptions)"
+        },
+        {
+          "label": "reaches no changed member",
+          "ref": "MessagePack.GeneratedMessagePackResolver.Lib.PairFormatter`1.Serialize(MsgPack::MessagePackWriter,global::Lib.Pair<T>,MsgPack::MessagePackSerializerOptions)"
+        },
+        {
+          "label": "reaches no changed member",
+          "ref": "MessagePack.GeneratedMessagePackResolver.Lib.PairFormatter`1.Deserialize(MsgPack::MessagePackReader,MsgPack::MessagePackSerializerOptions)"
+        },
+        {
+          "label": "reaches no changed member",
+          "ref": "MessagePack.GeneratedMessagePackResolver.GetFormatter`1()"
+        },
+        {
+          "label": "reaches no changed member",
+          "ref": "MessagePack.GeneratedMessagePackResolver.GeneratedMessagePackResolverGetFormatterHelper.GetFormatter(global::System.Type)"
+        }
+      ]
+    },
+    {
+      "id": "no-silencing",
+      "decidedBy": "policy",
+      "text": "No added code drops, suppresses or swallows anything.",
+      "status": "verified",
+      "evidence": [
+        {
+          "label": "patterns checked",
+          "detail": "drops-diagnostics, empty-catch, conditional-report"
+        }
+      ]
+    },
+    {
+      "id": "req-1",
+      "decidedBy": "requirement",
+      "text": "Requirement: \"MessagePackGenerator does not throw IndexOutOfRangeException for closed generic value types from metadata\" has a matching test.",
+      "status": "heuristic",
+      "evidence": [
+        {
+          "label": "best name match (4 shared words)",
+          "ref": "GenericsFormatterTests.GenericValueTypes_Defined_In_MetadataReference()"
+        }
+      ]
+    },
+    {
+      "id": "req-2",
+      "decidedBy": "requirement",
+      "text": "Requirement: \"MsgPack00xMessagePackAnalyzer does not throw for the same input\" has a matching test.",
+      "status": "heuristic",
+      "evidence": [
+        {
+          "label": "best name match (3 shared words)",
+          "ref": "MessagePack.GeneratedMessagePackResolver.App.CmdFormatter.Serialize(MsgPack::MessagePackWriter,global::App.Cmd,MsgPack::MessagePackSerializerOptions)"
+        }
+      ]
+    },
+    {
+      "id": "req-3",
+      "decidedBy": "requirement",
+      "text": "Requirement: \"A GeneratedMessagePackResolver is emitted for the consuming assembly\" has a matching test.",
+      "status": "heuristic",
+      "evidence": [
+        {
+          "label": "best name match (4 shared words)",
+          "ref": "MessagePack.GeneratedMessagePackResolver.GetFormatter`1()"
+        }
+      ]
+    },
+    {
+      "id": "tests-pass",
+      "decidedBy": "test-run",
+      "text": "The tests that reach this change pass.",
+      "status": "unverified",
+      "evidence": [
+        {
+          "label": "not run yet",
+          "detail": "run trust.run_tests to record a result"
+        }
+      ]
+    }
+  ],
+  "refusals": [
+    {
+      "question": "The agent was unsure: Skip fields with !CanBeReferencedByName in the int-key field loop. Is that acceptable?",
+      "why": "Self-reported by the agent: Backing fields of metadata types are not IsImplicitlyDeclared and can never carry [Key], so any diagnostic about them is noise the user cannot act on; source-declared backing fields are already skipped via IsImplicitlyDeclared, so source behaviour is unchanged",
+      "evidence": [
+        {
+          "label": "agent evidence",
+          "detail": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs:1051"
+        }
+      ],
+      "routeTo": "change owner"
+    },
+    {
+      "question": "Map mode with AllowPrivate=true on a generic struct from a DLL may still serialize compiler-generated backing fields, because the shared instanceMembers filter does not exclude unspeakable names. Should that be fixed in a follow-up?",
+      "why": "The agent left this for a human.",
+      "evidence": [],
+      "routeTo": "change owner"
+    },
+    {
+      "question": "No test isolates the !CanBeReferencedByName skip; should one be added (e.g. a metadata struct with a private [Key] member plus an auto-property)?",
+      "why": "The agent left this for a human.",
+      "evidence": [],
+      "routeTo": "change owner"
+    }
+  ],
+  "risk": {
+    "score": 1,
+    "factors": [
+      {
+        "id": "area:analyzer",
+        "label": "Touches Analyzer and generator logic",
+        "points": 1,
+        "evidence": [
+          {
+            "label": "Decides which diagnostics users see and what gets generated."
+          },
+          {
+            "label": "file",
+            "ref": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs"
+          }
+        ]
+      }
+    ],
+    "baseTier": "light",
+    "tier": "light",
+    "tierLabel": "Light check",
+    "tierMeaning": "Owner skims the receipt and spot-checks one item.",
+    "trustAdjustments": []
+  },
+  "readList": [
+    {
+      "key": "MessagePack.SourceGenerator.CodeAnalysis.TypeCollector.GetObjectInfo(INamedTypeSymbol,ISymbol?)",
+      "file": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+      "startLine": 700,
+      "endLine": 1419,
+      "why": [
+        "spot check (light tier)"
+      ]
+    }
+  ],
+  "checked": [
+    {
+      "what": "Member-level AST diff of 6 C# files (whitespace/comment-only edits separated)",
+      "by": "roslyn-ast"
+    },
+    {
+      "what": "Call-graph reachability over 9179 symbols / 30433 edges at 1846ba4b",
+      "by": "schema-graph"
+    },
+    {
+      "what": "Scope against REQ-2283 expected paths",
+      "by": "requirement"
+    },
+    {
+      "what": "Silencing patterns on 1 authored files",
+      "by": "policy"
+    }
+  ],
+  "notChecked": [
+    {
+      "what": "Test execution",
+      "why": "No test run recorded for this commit."
+    },
+    {
+      "what": "Performance",
+      "why": "No benchmark is run; MessagePack has BenchmarkDotNet suites, but not in the review loop."
+    },
+    {
+      "what": "Behaviour in trimmed / NativeAOT apps",
+      "why": "Requires a publish + run outside this engine."
+    },
+    {
+      "what": "Call edges through reflection or generated code not in the repo",
+      "why": "The static graph only sees source; name-resolved edges are marked lower confidence."
+    }
+  ],
+  "areas": [
+    "analyzer"
+  ],
+  "agent": {
+    "runId": "REQ-2283-20261114-041549",
+    "model": "claude-opus-5-5",
+    "agentVersion": "2.1.323",
+    "turns": 26,
+    "costUsd": 0.9261014000000002,
+    "durationMs": 157782,
+    "summary": "The IndexOutOfRangeException came from TypeCollector.GetObjectInfo's int-key field loop. For a closed generic value type from a compiled DLL (metadata), the compiler-generated auto-property backing field is not flagged IsImplicitlyDeclared, so it was processed as a keyless field, and the MemberNeedsKey diagnostic indexed DeclaringSyntaxReferences[0] on a symbol with no syntax. The fix skips fields that cannot be referenced by name in that loop and replaces the two remaining [0] lookups with FirstOrDefault()?. A new test compiles a library to a real metadata reference and runs both the generator and the analyzers over a consumer that uses Item<int> (record struct) and Pair<string> (struct). It failed before the fix with CS8785 and AD0001 and passes after; all 168 SourceGenerator tests pass.",
+    "decisions": [
+      {
+        "decision": "Replace DeclaringSyntaxReferences[0] with FirstOrDefault()?. for the MemberNeedsKey (field) and BothStringAndIntKeyAreNull diagnostics",
+        "why": "Metadata symbols have no syntax; the issue named this indexing as the crash site, and neighbouring code already uses this pattern",
+        "alternatives": "Skip GetObjectInfo diagnostics entirely for types without source",
+        "confidence": "sure",
+        "evidence": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs:986,1078"
+      },
+      {
+        "decision": "Skip fields with !CanBeReferencedByName in the int-key field loop",
+        "why": "Backing fields of metadata types are not IsImplicitlyDeclared and can never carry [Key], so any diagnostic about them is noise the user cannot act on; source-declared backing fields are already skipped via IsImplicitlyDeclared, so source behaviour is unchanged",
+        "alternatives": "Only the null-safe location fix, which still deferred or reported spurious MsgPack004 for metadata types that have private keyed members; or filtering at instanceMembers, which would also change map mode",
+        "confidence": "unsure",
+        "evidence": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs:1051"
+      },
+      {
+        "decision": "Test with a real emitted MetadataReference rather than AdditionalProjects",
+        "why": "AdditionalProjects become compilation references whose symbols still have syntax, so they do not reproduce the crash",
+        "alternatives": "AdditionalProjects/AdditionalProjectReferences, as Generics_Defined_In_ReferencedProject does",
+        "confidence": "sure",
+        "evidence": "GenericsFormatterTests.GenericValueTypes_Defined_In_MetadataReference"
+      }
+    ],
+    "steps": 35
+  },
+  "digest": "26ba5699dbcbd41b7d8f93ab7a59d75dda82867caf4faaac240f1eae8f4e79e4"
+}

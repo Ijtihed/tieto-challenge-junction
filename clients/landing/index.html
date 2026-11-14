@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Schema — The trust layer for AI-assisted development</title>
+  <meta name="description" content="Schema extracts a live architecture graph from your codebase. See what AI agents are doing — structurally — before you approve it. OSS, local-first, polyglot." />
+  <meta property="og:title" content="Schema — Trust your AI coding agent" />
+  <meta property="og:description" content="A live architecture graph for polyglot codebases. 7 extractors, 47 MCP actions, cross-language bridges. OSS + MIT." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0b;
+      --bg-elevated: #111113;
+      --bg-card: #16161a;
+      --border: #222228;
+      --border-bright: #333340;
+      --text-primary: #ededef;
+      --text-secondary: #8b8b97;
+      --text-tertiary: #5c5c66;
+      --accent: #6366f1;
+      --accent-dim: #4f46e5;
+      --accent-glow: rgba(99, 102, 241, 0.15);
+      --green: #22c55e;
+      --green-dim: rgba(34, 197, 94, 0.12);
+      --orange: #f59e0b;
+      --cyan: #06b6d4;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+      --max-w: 1120px;
+      --radius: 12px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(10, 10, 11, 0.8);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      max-width: var(--max-w); margin: 0 auto;
+      padding: 0 24px; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo {
+      font-weight: 700; font-size: 18px; color: var(--text-primary);
+      text-decoration: none; letter-spacing: -0.02em;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .nav-logo svg { width: 22px; height: 22px; }
+    .nav-links { display: flex; gap: 28px; align-items: center; }
+    .nav-links a {
+      color: var(--text-secondary); text-decoration: none;
+      font-size: 14px; font-weight: 500;
+      transition: color 0.15s;
+    }
+    .nav-links a:hover { color: var(--text-primary); }
+    .nav-links .btn-sm {
+      background: var(--accent); color: white; border: none;
+      padding: 6px 14px; border-radius: 8px; font-size: 13px;
+      font-weight: 600; cursor: pointer; text-decoration: none;
+      transition: background 0.15s;
+    }
+    .nav-links .btn-sm:hover { background: var(--accent-dim); color: white; }
+
+    /* ── Sections ── */
+    section { padding: 100px 24px; }
+    .container { max-width: var(--max-w); margin: 0 auto; }
+
+    /* ── Hero ── */
+    .hero { padding-top: 160px; padding-bottom: 80px; text-align: center; position: relative; }
+    .hero::before {
+      content: ''; position: absolute; top: 56px; left: 50%; transform: translateX(-50%);
+      width: 800px; height: 500px;
+      background: radial-gradient(ellipse at center, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 100px; padding: 6px 16px 6px 10px;
+      font-size: 13px; color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+    .hero-badge .dot {
+      width: 6px; height: 6px; background: var(--green);
+      border-radius: 50%; display: inline-block;
+    }
+    .hero h1 {
+      font-size: clamp(38px, 5.5vw, 64px);
+      font-weight: 700; letter-spacing: -0.035em;
+      line-height: 1.1; margin-bottom: 20px;
+      position: relative;
+    }
+    .hero h1 span { color: var(--accent); }
+    .hero .subtitle {
+      font-size: clamp(17px, 2vw, 20px);
+      color: var(--text-secondary); max-width: 640px;
+      margin: 0 auto 40px; line-height: 1.5;
+    }
+    .hero-cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .install-block {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 20px;
+      font-family: var(--font-mono); font-size: 14px;
+      color: var(--green); display: flex; align-items: center; gap: 12px;
+      cursor: pointer; transition: border-color 0.15s;
+      user-select: all;
+    }
+    .install-block:hover { border-color: var(--border-bright); }
+    .install-block .prompt { color: var(--text-tertiary); user-select: none; }
+    .install-block .copy-icon {
+      color: var(--text-tertiary); cursor: pointer;
+      transition: color 0.15s; user-select: none;
+    }
+    .install-block .copy-icon:hover { color: var(--text-primary); }
+    .btn-primary {
+      background: var(--accent); color: white; border: none;
+      padding: 12px 24px; border-radius: 10px;
+      font-size: 15px; font-weight: 600; cursor: pointer;
+      text-decoration: none; transition: background 0.15s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-primary:hover { background: var(--accent-dim); }
+
+    /* ── Stats strip ── */
+    .stats {
+      display: flex; justify-content: center; gap: 48px;
+      padding: 32px 24px 0; flex-wrap: wrap;
+    }
+    .stat { text-align: center; }
+    .stat-value {
+      font-size: 28px; font-weight: 700;
+      font-family: var(--font-mono); color: var(--text-primary);
+    }
+    .stat-label { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+
+    /* ── Features grid ── */
+    .features-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 20px; margin-top: 48px;
+    }
+    @media (max-width: 768px) { .features-grid { grid-template-columns: 1fr; } }
+    .feature-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 28px;
+      transition: border-color 0.2s;
+    }
+    .feature-card:hover { border-color: var(--border-bright); }
+    .feature-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; margin-bottom: 16px;
+    }
+    .feature-card h3 {
+      font-size: 16px; font-weight: 600; margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+    .feature-card p { font-size: 14px; color: var(--text-secondary); line-height: 1.55; }
+
+    .section-title {
+      font-size: clamp(28px, 3.5vw, 40px); font-weight: 700;
+      letter-spacing: -0.03em; text-align: center; margin-bottom: 12px;
+    }
+    .section-sub {
+      text-align: center; color: var(--text-secondary);
+      font-size: 17px; max-width: 560px; margin: 0 auto;
+    }
+
+    /* ── Code block ── */
+    .code-section { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+    @media (max-width: 768px) { .code-section { grid-template-columns: 1fr; } }
+    .code-block {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    .code-header {
+      padding: 10px 16px; border-bottom: 1px solid var(--border);
+      font-size: 12px; color: var(--text-tertiary);
+      font-family: var(--font-mono); display: flex; align-items: center; gap: 8px;
+    }
+    .code-header .dot-r { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; }
+    .code-header .dot-y { width: 8px; height: 8px; border-radius: 50%; background: var(--orange); }
+    .code-header .dot-g { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+    .code-body {
+      padding: 20px; font-family: var(--font-mono);
+      font-size: 13px; line-height: 1.7; color: var(--text-secondary);
+      overflow-x: auto;
+    }
+    .code-body .key { color: #7dd3fc; }
+    .code-body .str { color: var(--green); }
+    .code-body .comment { color: var(--text-tertiary); }
+
+    .code-text h2 {
+      font-size: 32px; font-weight: 700; letter-spacing: -0.03em;
+      margin-bottom: 16px;
+    }
+    .code-text p { color: var(--text-secondary); font-size: 15px; margin-bottom: 16px; }
+    .code-text ul { list-style: none; padding: 0; }
+    .code-text ul li {
+      color: var(--text-secondary); font-size: 14px;
+      padding: 6px 0; display: flex; align-items: center; gap: 10px;
+    }
+    .code-text ul li::before {
+      content: ''; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent); flex-shrink: 0;
+    }
+
+    /* ── How it works ── */
+    .steps {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 32px; margin-top: 48px;
+    }
+    @media (max-width: 768px) { .steps { grid-template-columns: 1fr; } }
+    .step {
+      position: relative; padding: 28px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .step-num {
+      font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+      color: var(--accent); margin-bottom: 12px;
+    }
+    .step h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+    .step p { font-size: 14px; color: var(--text-secondary); }
+    .step code {
+      background: var(--bg); border: 1px solid var(--border);
+      padding: 2px 6px; border-radius: 4px; font-size: 12px;
+      font-family: var(--font-mono); color: var(--green);
+    }
+
+    /* ── Capabilities table ── */
+    .cap-table {
+      width: 100%; border-collapse: separate; border-spacing: 0;
+      margin-top: 48px; background: var(--bg-card);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .cap-table th {
+      text-align: left; padding: 12px 20px;
+      font-size: 12px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--text-tertiary); background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+    .cap-table td {
+      padding: 14px 20px; font-size: 14px;
+      color: var(--text-secondary); border-bottom: 1px solid var(--border);
+    }
+    .cap-table tr:last-child td { border-bottom: none; }
+    .cap-table .cap-name { color: var(--text-primary); font-weight: 500; }
+
+    /* ── OSS banner ── */
+    .oss-banner {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 48px; text-align: center;
+    }
+    .oss-banner h2 {
+      font-size: 32px; font-weight: 700; letter-spacing: -0.03em;
+      margin-bottom: 12px;
+    }
+    .oss-banner p { color: var(--text-secondary); font-size: 16px; max-width: 560px; margin: 0 auto 28px; }
+    .badge-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 100px;
+      font-size: 13px; font-weight: 500;
+    }
+    .badge-green { background: var(--green-dim); color: var(--green); }
+    .badge-accent { background: var(--accent-glow); color: var(--accent); }
+    .badge-text { color: var(--text-secondary); background: rgba(255,255,255,0.04); }
+
+    /* ── Architecture diagram ── */
+    .arch-diagram {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 32px;
+      font-family: var(--font-mono); font-size: 13px;
+      line-height: 1.6; color: var(--text-secondary);
+      overflow-x: auto; white-space: pre; text-align: center;
+      margin-top: 48px;
+    }
+    .arch-diagram .layer {
+      display: inline-block; text-align: left;
+    }
+    .arch-diagram .highlight { color: var(--accent); }
+    .arch-diagram .dim { color: var(--text-tertiary); }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 24px; text-align: center;
+    }
+    footer p { font-size: 13px; color: var(--text-tertiary); }
+    footer a { color: var(--text-secondary); text-decoration: none; }
+    footer a:hover { color: var(--text-primary); }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .stats { gap: 32px; }
+      .nav-links a:not(.btn-sm) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+        <path d="M2 12h20"/>
+      </svg>
+      Schema
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How it works</a>
+      <a href="#capabilities">Capabilities</a>
+      <a href="https://github.com/schema-ai/schema" class="btn-sm">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge">
+      <span class="dot"></span>
+      Open source &middot; MIT licensed &middot; v1.0
+    </div>
+    <h1>Trust your <span>AI coding agent</span></h1>
+    <p class="subtitle">
+      Schema extracts a live architecture graph from your codebase.
+      See what AI agents are doing — structurally — before you approve it.
+    </p>
+    <div class="hero-cta">
+      <div class="install-block" onclick="navigator.clipboard.writeText('npm install -g @schema-ai/mcp')">
+        <span class="prompt">$</span>
+        npm install -g @schema-ai/mcp
+        <span class="copy-icon" title="Copy to clipboard">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        </span>
+      </div>
+      <a href="https://github.com/schema-ai/schema" class="btn-primary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        View on GitHub
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Stats -->
+<div class="stats">
+  <div class="stat">
+    <div class="stat-value">47</div>
+    <div class="stat-label">MCP actions</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value">7</div>
+    <div class="stat-label">language extractors</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value">793</div>
+    <div class="stat-label">tests passing</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value">3</div>
+    <div class="stat-label">cross-language bridges</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value">MIT</div>
+    <div class="stat-label">license</div>
+  </div>
+</div>
+
+<!-- Features -->
+<section id="features">
+  <div class="container">
+    <h2 class="section-title">What Schema does</h2>
+    <p class="section-sub">
+      One install. Zero configuration. Every language your codebase speaks.
+    </p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon" style="background: rgba(99,102,241,0.12); color: var(--accent);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+        </div>
+        <h3>Polyglot architecture graph</h3>
+        <p>TypeScript, Python, Go, Java/Kotlin, Ruby, Rust, and config files. Tree-sitter extraction at IDE latency. No configuration.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: rgba(34,197,94,0.12); color: var(--green);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z"/><path d="M3 9h18M9 3v18"/></svg>
+        </div>
+        <h3>Cross-language bridges</h3>
+        <p>REST routes matched to handlers. gRPC proto definitions resolved to implementations. SQL queries linked to table schemas. Across languages, automatically.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: rgba(245,158,11,0.12); color: var(--orange);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3>Architectural rules</h3>
+        <p>Write rules. Schema enforces them. Circular imports, missing middleware, contract mismatches — caught before they ship.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: rgba(6,182,212,0.12); color: var(--cyan);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <h3>Structural diff</h3>
+        <p>See what changed architecturally between any two Git refs. Not lines added — structural impact. Copy-ready markdown for PR descriptions.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: rgba(99,102,241,0.12); color: var(--accent);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <h3>47 MCP actions</h3>
+        <p>Works with Claude Code, Cursor, Cline, Windsurf, Zed — any MCP-compatible agent. The agent sees the architecture before it writes code.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: rgba(34,197,94,0.12); color: var(--green);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12l2 2 4-4"/></svg>
+        </div>
+        <h3>Datalog queries</h3>
+        <p>Run architectural queries against your codebase. "Show me all functions that call the payment service but skip auth middleware." Bundled query library included.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MCP Integration -->
+<section style="padding-top: 60px;">
+  <div class="container">
+    <div class="code-section">
+      <div class="code-text">
+        <h2>Works with your&nbsp;agent</h2>
+        <p>
+          Add one config block. Schema becomes available to every conversation.
+          Your AI agent sees the full architecture graph before it writes code.
+        </p>
+        <ul>
+          <li>Claude Code &amp; Claude Desktop</li>
+          <li>Cursor</li>
+          <li>Cline &amp; Windsurf</li>
+          <li>Zed &amp; any MCP client</li>
+        </ul>
+      </div>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="dot-r"></span>
+          <span class="dot-y"></span>
+          <span class="dot-g"></span>
+          mcp.json
+        </div>
+        <div class="code-body"><span class="comment">// Paste into your MCP config</span>
+{
+  <span class="key">"mcpServers"</span>: {
+    <span class="key">"schema"</span>: {
+      <span class="key">"command"</span>: <span class="str">"npx"</span>,
+      <span class="key">"args"</span>: [<span class="str">"-y"</span>, <span class="str">"@schema-ai/mcp@latest"</span>]
+    }
+  }
+}</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section id="how-it-works">
+  <div class="container">
+    <h2 class="section-title">Three steps</h2>
+    <p class="section-sub">From install to full architectural visibility in under a minute.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <h3>Install</h3>
+        <p>One command: <code>npm i -g @schema-ai/mcp</code>. No config files. No language servers. No project-specific setup.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <h3>Point</h3>
+        <p>Open your codebase. Schema auto-detects languages, routes, contracts, and service boundaries. Works on polyglot monorepos.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <h3>See</h3>
+        <p>Full architecture graph, rule evaluations, structural diffs. In your MCP agent, in Schema Studio, or via the CLI.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Architecture -->
+<section id="capabilities">
+  <div class="container">
+    <h2 class="section-title">Built for real codebases</h2>
+    <p class="section-sub">Not a prototype. 793 tests across 36 files. 17 namespaces. Production-grade.</p>
+
+    <table class="cap-table">
+      <thead>
+        <tr><th>Capability</th><th>Details</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="cap-name">Language extractors</td>
+          <td>TypeScript/JavaScript, Python, Go, Java/Kotlin, Ruby, Rust, generic config (YAML/JSON/TOML/HCL)</td>
+        </tr>
+        <tr>
+          <td class="cap-name">Cross-language bridges</td>
+          <td>REST (fetch calls &rarr; route handlers), gRPC (proto services &rarr; implementations), SQL (DDL tables &rarr; ORM models). Emits <code>implements_contract</code> and <code>consumes_contract</code> edges.</td>
+        </tr>
+        <tr>
+          <td class="cap-name">Architectural rules</td>
+          <td>4 built-in rules: no-cycle, must-have-handler, must-have-inbound, must-have-outbound. Session rules and <code>.schema/rules/</code> file rules. Datalog-based evaluation.</td>
+        </tr>
+        <tr>
+          <td class="cap-name">Wisdom layer</td>
+          <td>9 bundled skills (OTP supervision, CQRS, Jepsen fault classes, refactoring guides). 60-doc canon corpus with BM25 search. AGENTS.md round-trip writer.</td>
+        </tr>
+        <tr>
+          <td class="cap-name">Graph persistence</td>
+          <td>SQLite-backed graph snapshots, git-SHA-tagged. SCIP import for compiler-precise cross-references.</td>
+        </tr>
+        <tr>
+          <td class="cap-name">Datalog queries</td>
+          <td><code>graph.query</code> action accepts Datalog. Bundled architectural search queries. Custom rules in <code>.schema/rules/*.dl</code>.</td>
+        </tr>
+        <tr>
+          <td class="cap-name">Plan &amp; codemod</td>
+          <td><code>plan.propose</code> &rarr; <code>plan.apply</code> &rarr; <code>plan.restore</code>. Auto-rollback on failure. File snapshots. 8 bundled codemods.</td>
+        </tr>
+        <tr>
+          <td class="cap-name">Transports</td>
+          <td>stdio (for MCP clients) + Streamable HTTP (for web dashboard / Studio). Same action surface on both.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="arch-diagram">
+<div class="layer"><span class="dim">┌─────────────────────────────────────────────────────────────┐</span>
+<span class="dim">│</span>  <span class="highlight">MCP clients</span>  (Claude, Cursor, Cline, Studio, CLI, Web)    <span class="dim">│</span>
+<span class="dim">└────────────────────────────┬────────────────────────────────┘</span>
+                             <span class="dim">│ stdio or Streamable HTTP</span>
+<span class="dim">┌────────────────────────────▼────────────────────────────────┐</span>
+<span class="dim">│</span>  <span class="highlight">MCP server</span>                                                <span class="dim">│</span>
+<span class="dim">│</span>  transport → protocol → dispatcher                         <span class="dim">│</span>
+<span class="dim">│</span>  47 actions · 7 extractors · 3 bridges                     <span class="dim">│</span>
+<span class="dim">│</span>  4 rules · 8 ops · 9 skills · 60-doc canon                 <span class="dim">│</span>
+<span class="dim">│</span>  session store · event bus · file snapshots                 <span class="dim">│</span>
+<span class="dim">└─────────────────────────────────────────────────────────────┘</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- Schema Studio -->
+<section>
+  <div class="container">
+    <div class="oss-banner">
+      <h2>Schema Studio</h2>
+      <p>Free, open-source desktop app. Tauri 2.x with React Flow canvas, Monaco editor, diff visualizer, and rule authoring. Not an IDE — a trust layer.</p>
+      <div class="badge-row">
+        <span class="badge badge-green">Free forever</span>
+        <span class="badge badge-accent">MIT licensed</span>
+        <span class="badge badge-text">macOS &middot; Linux &middot; Windows</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing -->
+<section>
+  <div class="container" style="text-align: center;">
+    <h2 class="section-title">Free. Open source. No catch.</h2>
+    <p class="section-sub" style="margin-bottom: 40px;">
+      Engine, CLI, Studio, extensions — all MIT-licensed. No telemetry. BYOK.
+    </p>
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; max-width: 700px; margin: 0 auto;">
+      <div class="feature-card" style="text-align: left;">
+        <div style="font-size: 28px; font-weight: 700; margin-bottom: 4px;">$0</div>
+        <div style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 16px;">Schema OSS + Studio</div>
+        <ul style="list-style: none; padding: 0;">
+          <li style="font-size: 13px; color: var(--text-secondary); padding: 4px 0;">47 MCP actions</li>
+          <li style="font-size: 13px; color: var(--text-secondary); padding: 4px 0;">7 language extractors</li>
+          <li style="font-size: 13px; color: var(--text-secondary); padding: 4px 0;">3 cross-language bridges</li>
+          <li style="font-size: 13px; color: var(--text-secondary); padding: 4px 0;">Schema Studio desktop app</li>
+          <li style="font-size: 13px; color: var(--text-secondary); padding: 4px 0;">CLI + VS Code extension</li>
+          <li style="font-size: 13px; color: var(--text-secondary); padding: 4px 0;">No telemetry, forever</li>
+        </ul>
+      </div>
+      <div class="feature-card" style="text-align: left; border-color: var(--accent);">
+        <div style="font-size: 28px; font-weight: 700; margin-bottom: 4px;">$20<span style="font-size: 14px; font-weight: 400; color: var(--text-tertiary);">/seat/mo</span></div>
+        <div style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 16px;">Schema Hub (coming soon)</div>
+        <ul style="list-style: none; padding: 0;">
+          <li style="font-size: 13px; color: var(--text-secondary); padding: 4px 0;">Everything in OSS, plus:</li>
+          <li style="font-size: 13px; color: var(--text-secondary); padding: 4px 0;">Cross-repo AGENTS.md publishing</li>
+          <li style="font-size: 13px; color: var(--text-secondary); padding: 4px 0;">Shared rule packs</li>
+          <li style="font-size: 13px; color: var(--text-secondary); padding: 4px 0;">Automated PR review</li>
+          <li style="font-size: 13px; color: var(--text-secondary); padding: 4px 0;">Multi-repo polyglot graph</li>
+          <li style="font-size: 13px; color: var(--text-secondary); padding: 4px 0;">SSO &amp; team management</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Final CTA -->
+<section style="padding-bottom: 120px;">
+  <div class="container" style="text-align: center;">
+    <h2 class="section-title">Stop blindly trusting AI agents</h2>
+    <p class="section-sub" style="margin-bottom: 32px;">
+      Built for staff+ engineers who've been burned by AI-generated code they couldn't verify.
+    </p>
+    <div class="hero-cta">
+      <div class="install-block" onclick="navigator.clipboard.writeText('npx -y @schema-ai/mcp@latest')">
+        <span class="prompt">$</span>
+        npx -y @schema-ai/mcp@latest
+        <span class="copy-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        </span>
+      </div>
+      <a href="https://github.com/schema-ai/schema" class="btn-primary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        View on GitHub
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <p>
+      <a href="https://github.com/schema-ai/schema">GitHub</a> &nbsp;&middot;&nbsp;
+      <a href="https://github.com/schema-ai/schema/blob/main/README.md">Documentation</a> &nbsp;&middot;&nbsp;
+      MIT License
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,38 @@
+# Workflow for SCHEMA_CI=craci. Copy to .github/workflows/schema-ci.yml on the repo once the
+# CRACI GitHub App is installed. Schema dispatches it per agent commit with only the projects and
+# test classes that reach the change (graph-selected), so CI runs a fraction of the suite.
+name: Schema CI
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      projects:
+        description: "Test projects to build and run (space-separated)"
+        default: "tests/MessagePack.SourceGenerator.Tests"
+      filter:
+        description: "dotnet test --filter expression (empty = whole project)"
+        default: ""
+
+jobs:
+  build-test:
+    runs-on: craci            # CRACI managed runner: build-time SBOM, egress policy, CVE monitoring
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Build and test only what the change reaches
+        env:
+          PROJECTS: ${{ inputs.projects || 'tests/MessagePack.SourceGenerator.Tests' }}
+          FILTER: ${{ inputs.filter }}
+        run: |
+          for p in $PROJECTS; do
+            dotnet build "$p" -c Debug
+            if [ -n "$FILTER" ]; then dotnet test "$p" -c Debug --no-build --filter "$FILTER"; else dotnet test "$p" -c Debug --no-build; fi
+            dotnet list "$p" package --vulnerable --include-transitive
+          done

@@ -1,0 +1,30 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "enables the default permissions",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "dialog:default",
+    "dialog:allow-open",
+    "shell:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "schema-mcp",
+          "cmd": "npx",
+          "args": ["-y", "@schema-ai/mcp@latest", "serve"]
+        },
+        {
+          "name": "schema-mcp-local",
+          "cmd": "node",
+          "args": true
+        }
+      ]
+    },
+    "shell:allow-spawn"
+  ]
+}

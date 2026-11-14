@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Top bar: full width -->
+  <rect x="15" y="18" width="70" height="28" fill="#FFFFFF"/>
+  <!-- Right side light -->
+  <rect x="55" y="18" width="30" height="28" fill="#F5F5F5"/>
+  <!-- Left column going down -->
+  <rect x="15" y="18" width="30" height="42" fill="#FFFFFF"/>
+  <!-- Shadow step bottom-left -->
+  <rect x="15" y="52" width="20" height="8" fill="#B8B8B8"/>
+  <!-- Shadow step top-right -->
+  <rect x="65" y="40" width="20" height="8" fill="#B8B8B8"/>
+  <!-- Right column going down -->
+  <rect x="55" y="40" width="30" height="42" fill="#FFFFFF"/>
+  <!-- Right column light face -->
+  <rect x="55" y="48" width="30" height="34" fill="#F5F5F5"/>
+  <!-- Bottom bar: full width -->
+  <rect x="15" y="54" width="70" height="28" fill="#FFFFFF"/>
+  <!-- Bottom left face -->
+  <rect x="15" y="54" width="30" height="28" fill="#F5F5F5"/>
+  <!-- Center void -->
+  <rect x="35" y="46" width="30" height="16" fill="currentColor" fill-opacity="0"/>
+</svg>

@@ -1,0 +1,13 @@
+{
+  "note": "Demo connector data: synthetic tracker records for the four challenge issues. Swap for real Linear/Jira MCP servers.",
+  "connectors": [
+    { "id": "linear", "name": "Linear", "workspace": "messagepack", "team": "MP", "transport": "mcp", "status": "connected" },
+    { "id": "jira", "name": "Jira", "workspace": "tieto-oss", "project": "MPCS", "transport": "mcp", "status": "connected" }
+  ],
+  "issues": [
+    { "requirementId": "REQ-2283", "tracker": "linear", "key": "MP-2283", "status": "Todo", "priority": "Urgent", "assignee": "Unassigned", "labels": ["bug", "source-generator", "analyzer"], "reporter": "upstream #2283", "updatedAt": "2026-11-12T09:14:00Z" },
+    { "requirementId": "REQ-2234", "tracker": "jira", "key": "MPCS-2234", "status": "To Do", "priority": "High", "assignee": "Unassigned", "labels": ["bug", "analyzer", "regression"], "reporter": "upstream #2234", "updatedAt": "2026-11-11T15:02:00Z" },
+    { "requirementId": "REQ-2297", "tracker": "jira", "key": "MPCS-2297", "status": "Backlog", "priority": "Low", "assignee": "Unassigned", "labels": ["feature", "generated-code"], "reporter": "upstream #2297", "updatedAt": "2026-11-10T11:40:00Z" },
+    { "requirementId": "REQ-2129", "tracker": "linear", "key": "MP-2129", "status": "Backlog", "priority": "Medium", "assignee": "Unassigned", "labels": ["feature", "public-api", "source-generator"], "reporter": "upstream #2129", "updatedAt": "2026-11-09T08:21:00Z" }
+  ]
+}

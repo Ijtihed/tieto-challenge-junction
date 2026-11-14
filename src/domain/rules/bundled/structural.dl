@@ -1,0 +1,214 @@
+%% ═══════════════════════════════════════════════════════════════
+%% Bundled Datalog rules — structural integrity
+%% Per architecture/specs/datalog-lite.md §5.1
+%%
+%% 12 rules enforcing basic graph invariants. The first four are
+%% Datalog rewrites of the TypeScript built-in rules in
+%% src/domain/builtin-rules.ts (spec §8 backward-compatibility).
+%% ═══════════════════════════════════════════════════════════════
+
+% ─── Shared helpers ─────────────────────────────────────────────
+
+% Transitive reachability over all edge types.
+reachable(X, Y) :- edge(X, _, Y, _).
+reachable(X, Z) :- reachable(X, Y), edge(Y, _, Z, _).
+
+% Import-only transitive reachability.
+import_reachable(X, Y) :- edge(X, "imports", Y, _).
+import_reachable(X, Z) :- import_reachable(X, Y), edge(Y, "imports", Z, _).
+
+% Nodes that participate in at least one edge (any direction).
+has_incoming(N) :- edge(_, _, N, _).
+has_outgoing(N) :- edge(N, _, _, _).
+has_any_edge(N) :- has_incoming(N).
+has_any_edge(N) :- has_outgoing(N).
+
+% Nodes targeted by implements_contract / consumes_contract.
+has_implementor(C) :- edge(_, "implements_contract", C, _).
+has_consumer(C)    :- edge(_, "consumes_contract", C, _).
+
+% Distinct outgoing edge-relation types for a node.
+outgoing_rel_type(N, R) :- edge(N, R, _, _).
+
+% Per-node outgoing call targets (deduplicated by Datalog semantics).
+call_target(N, T) :- edge(N, "calls", T, _).
+
+% Per-node incoming call sources.
+call_source(N, S) :- edge(S, "calls", N, _).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 1 / 12 — no-cycle
+% ═══════════════════════════════════════════════════════════════
+
+%% id: no-cycle
+%% severity: error
+%% description: No directed cycles in the dependency graph.
+%%
+
+violation("no-cycle", N) :-
+  reachable(N, N).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 2 / 12 — must-have-handler
+% ═══════════════════════════════════════════════════════════════
+
+%% id: must-have-handler
+%% severity: warn
+%% description: Every route_handler must be registered (≥1 incoming edge).
+%% requires: negation (v1.2)
+%%
+
+violation("must-have-handler", N) :-
+  node(N, "route_handler", _),
+  not has_incoming(N).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 3 / 12 — must-have-inbound
+% ═══════════════════════════════════════════════════════════════
+
+%% id: must-have-inbound
+%% severity: info
+%% description: Nodes with outgoing edges should have ≥1 incoming edge.
+%% requires: negation (v1.2)
+%%
+
+violation("must-have-inbound", N) :-
+  has_outgoing(N),
+  not has_incoming(N).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 4 / 12 — must-have-outbound
+% ═══════════════════════════════════════════════════════════════
+
+%% id: must-have-outbound
+%% severity: info
+%% description: Nodes with incoming edges should have ≥1 outgoing edge.
+%% requires: negation (v1.2)
+%%
+
+violation("must-have-outbound", N) :-
+  has_incoming(N),
+  not has_outgoing(N).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 5 / 12 — no-orphan-node
+% ═══════════════════════════════════════════════════════════════
+
+%% id: no-orphan-node
+%% severity: warn
+%% description: Every node must participate in at least one edge.
+%% requires: negation (v1.2)
+%%
+
+violation("no-orphan-node", N) :-
+  node(N, _, _),
+  not has_any_edge(N).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 6 / 12 — no-self-loop
+% ═══════════════════════════════════════════════════════════════
+
+%% id: no-self-loop
+%% severity: error
+%% description: No node may have an edge to itself.
+%%
+
+violation("no-self-loop", N) :-
+  edge(N, _, N, _).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 7 / 12 — max-fan-out
+% ═══════════════════════════════════════════════════════════════
+
+%% id: max-fan-out
+%% severity: warn
+%% description: No node has >20 outgoing call targets (god-object smell).
+%% requires: aggregation (v1.2+)
+%%
+
+violation("max-fan-out", N) :-
+  node(N, _, _),
+  C = count : { call_target(N, _) },
+  C > 20.
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 8 / 12 — max-fan-in
+% ═══════════════════════════════════════════════════════════════
+
+%% id: max-fan-in
+%% severity: warn
+%% description: No node has >50 incoming call sources (hidden coupling hub).
+%% requires: aggregation (v1.2+)
+%%
+
+violation("max-fan-in", N) :-
+  node(N, _, _),
+  C = count : { call_source(N, _) },
+  C > 50.
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 9 / 12 — single-responsibility
+% ═══════════════════════════════════════════════════════════════
+
+%% id: single-responsibility
+%% severity: warn
+%% description: No node has >3 distinct outgoing edge-relation types.
+%% requires: aggregation (v1.2+)
+%%
+
+violation("single-responsibility", N) :-
+  node(N, _, _),
+  C = count : { outgoing_rel_type(N, _) },
+  C > 3.
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 10 / 12 — no-circular-imports
+% ═══════════════════════════════════════════════════════════════
+
+%% id: no-circular-imports
+%% severity: error
+%% description: No import-only cycles (considers only import edges).
+%%
+
+violation("no-circular-imports", N) :-
+  import_reachable(N, N).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 11 / 12 — contract-has-impl
+% ═══════════════════════════════════════════════════════════════
+
+%% id: contract-has-impl
+%% severity: warn
+%% description: Every contract node has ≥1 implements_contract edge.
+%% requires: negation (v1.2)
+%%
+
+violation("contract-has-impl", N) :-
+  node(N, "contract", _),
+  not has_implementor(N).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 12 / 12 — contract-has-consumer
+% ═══════════════════════════════════════════════════════════════
+
+%% id: contract-has-consumer
+%% severity: warn
+%% description: Every contract node has ≥1 consumes_contract edge.
+%% requires: negation (v1.2)
+%%
+
+violation("contract-has-consumer", N) :-
+  node(N, "contract", _),
+  not has_consumer(N).

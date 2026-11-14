@@ -1,0 +1,190 @@
+%% ═══════════════════════════════════════════════════════════════
+%% Bundled Datalog rules — bridge integrity
+%% Per architecture/specs/datalog-lite.md §5.2
+%%
+%% 8 rules enforcing cross-language bridge contracts. Verify that
+%% contract nodes (REST/gRPC/SQL/AsyncAPI/GraphQL) are properly
+%% connected to their implementations and consumers.
+%% ═══════════════════════════════════════════════════════════════
+
+% ─── Shared helpers ─────────────────────────────────────────────
+
+% Contract nodes with at least one implementor.
+has_impl(C) :- edge(_, "implements_contract", C, _).
+
+% Contract nodes with at least one consumer.
+has_cons(C) :- edge(_, "consumes_contract", C, _).
+
+% Contract nodes with any edge (incoming or outgoing).
+contract_has_edge(C) :- edge(C, _, _, _).
+contract_has_edge(C) :- edge(_, _, C, _).
+
+% Node confirmed as a contract kind.
+is_contract(N) :- node(N, "contract", _).
+
+% Cross-file implementation: implementor and contract live in different files.
+cross_file_impl(C) :-
+  edge(N, "implements_contract", C, _),
+  node_file(N, F1),
+  node_file(C, F2),
+  F1 != F2.
+
+% Contract file tracked as a known node_file in the graph.
+contract_file_tracked(C) :-
+  contract(C, _, Loc),
+  node_file(_, Loc).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 1 / 8 — rest-impl-matches-spec
+% ═══════════════════════════════════════════════════════════════
+
+%% id: rest-impl-matches-spec
+%% severity: error
+%% description: Every OpenAPI contract has ≥1 implementing route handler.
+%% requires: negation (v1.2)
+%%
+
+rest_has_impl(C) :-
+  contract(C, "openapi", _),
+  edge(N, "implements_contract", C, _),
+  node(N, "route_handler", _).
+
+rest_has_impl(C) :-
+  contract(C, "openapi", _),
+  edge(N, "implements_contract", C, _),
+  node(N, "service", _).
+
+violation("rest-impl-matches-spec", C) :-
+  contract(C, "openapi", _),
+  not rest_has_impl(C).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 2 / 8 — grpc-impl-matches-proto
+% ═══════════════════════════════════════════════════════════════
+
+%% id: grpc-impl-matches-proto
+%% severity: error
+%% description: Every gRPC/protobuf contract has ≥1 implementing service.
+%% requires: negation (v1.2)
+%%
+
+grpc_has_impl(C) :-
+  contract(C, "proto", _),
+  edge(N, "implements_contract", C, _),
+  node(N, "service", _).
+
+grpc_has_impl(C) :-
+  contract(C, "proto", _),
+  edge(N, "implements_contract", C, _),
+  node(N, "route_handler", _).
+
+violation("grpc-impl-matches-proto", C) :-
+  contract(C, "proto", _),
+  not grpc_has_impl(C).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 3 / 8 — sql-model-has-access
+% ═══════════════════════════════════════════════════════════════
+
+%% id: sql-model-has-access
+%% severity: warn
+%% description: Every SQL contract has ≥1 data_access node implementing it.
+%% requires: negation (v1.2)
+%%
+
+sql_has_accessor(C) :-
+  contract(C, "sql", _),
+  edge(N, "implements_contract", C, _),
+  node(N, "data_access", _).
+
+violation("sql-model-has-access", C) :-
+  contract(C, "sql", _),
+  not sql_has_accessor(C).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 4 / 8 — bridge-no-dangling
+% ═══════════════════════════════════════════════════════════════
+
+%% id: bridge-no-dangling
+%% severity: error
+%% description: No implements_contract edge may target a non-contract node.
+%% requires: negation (v1.2)
+%%
+
+violation("bridge-no-dangling", S) :-
+  edge(S, "implements_contract", T, _),
+  not is_contract(T).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 5 / 8 — bridge-no-orphan-contract
+% ═══════════════════════════════════════════════════════════════
+
+%% id: bridge-no-orphan-contract
+%% severity: warn
+%% description: No contract node with zero edges (dead contract).
+%% requires: negation (v1.2)
+%%
+
+violation("bridge-no-orphan-contract", C) :-
+  node(C, "contract", _),
+  not contract_has_edge(C).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 6 / 8 — cross-lang-coverage
+% ═══════════════════════════════════════════════════════════════
+
+%% id: cross-lang-coverage
+%% severity: info
+%% description: Each contract is implemented by ≥1 node in a different file.
+%% requires: negation (v1.2)
+%%
+
+% A contract that has at least one implementor but all implementors
+% live in the same file as the contract itself is likely untested
+% across language boundaries.
+violation("cross-lang-coverage", C) :-
+  node(C, "contract", _),
+  has_impl(C),
+  not cross_file_impl(C).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 7 / 8 — spec-source-consistency
+% ═══════════════════════════════════════════════════════════════
+
+%% id: spec-source-consistency
+%% severity: warn
+%% description: Contract specification file must exist as a tracked node.
+%% requires: negation (v1.2)
+%%
+
+% The contract's locator (e.g. "api/openapi.yaml") should match a
+% file tracked in the graph. If no node_file matches, the spec file
+% may have been deleted or moved without updating the contract.
+violation("spec-source-consistency", C) :-
+  contract(C, _, _),
+  not contract_file_tracked(C).
+
+
+% ═══════════════════════════════════════════════════════════════
+%  Rule 8 / 8 — bridge-bidirectional
+% ═══════════════════════════════════════════════════════════════
+
+%% id: bridge-bidirectional
+%% severity: warn
+%% description: An implemented contract should also be consumed somewhere.
+%% requires: negation (v1.2)
+%%
+
+% A contract that is implemented but never consumed is likely dead
+% code — the service exposes an interface nobody calls.
+violation("bridge-bidirectional", C) :-
+  node(C, "contract", _),
+  has_impl(C),
+  not has_cons(C).
