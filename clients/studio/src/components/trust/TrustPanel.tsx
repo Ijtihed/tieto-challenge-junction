@@ -443,7 +443,7 @@ export default function TrustPanel() {
   const status = run?.status === "running" ? "Agent running" : receipt ? receipt.risk.tierLabel : run?.status ?? "";
   const TABS = [["agent", "Agent"], ["receipt", "Receipt"], ["signoff", "Sign-off"]] as const;
   return (
-    <aside className="w-[460px] shrink-0 m-3 ml-0 ui-panel flex flex-col" aria-label="Agent PR review">
+    <aside className="w-[440px] shrink-0 m-3 ml-0 ui-panel flex flex-col" aria-label="Agent PR review">
       <div className="px-5 pt-5 pb-4">
         <div className="flex items-center gap-2">
           <span className="ui-code text-on-surface-muted">{req}</span>
