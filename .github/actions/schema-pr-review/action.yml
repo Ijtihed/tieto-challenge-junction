@@ -1,0 +1,101 @@
+name: schema-pr-review
+description: >
+  Run Schema's `pr.review` on the PR head and post (or update) a
+  sticky review comment. Local-clone-only per
+  `architecture/v1-launch-plan.md` Q14 — this action is NOT
+  intended to be published to the GitHub Actions Marketplace.
+
+inputs:
+  base-ref:
+    description: >
+      Git ref to diff against (passed to `schema pr-review-md`).
+      Defaults to `merge-base origin/main` which matches the
+      local CLI default.
+    required: false
+    default: merge-base origin/main
+  studio-base-url:
+    description: >
+      Base URL for atlas deep links in the PR comment. Defaults
+      to the Vite dev server (Q16) but a self-hosted Studio URL
+      can be passed if available. The link is informational; the
+      review still works without a running Studio.
+    required: false
+    default: http://localhost:5173
+  pr-sha:
+    description: >
+      Override for the PR head SHA. Auto-detected from
+      `github.event.pull_request.head.sha` when omitted.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Detect PR SHA
+      id: detect-sha
+      shell: bash
+      run: |
+        sha="${{ inputs.pr-sha }}"
+        if [ -z "$sha" ]; then
+          sha="${{ github.event.pull_request.head.sha }}"
+        fi
+        if [ -z "$sha" ]; then
+          sha="${{ github.sha }}"
+        fi
+        echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+    - name: Render pr.review markdown
+      id: render
+      shell: bash
+      env:
+        # The CLI tolerates a no-PR cron run but produces a
+        # mostly-empty comment. The PR action only runs on a
+        # real PR trigger so this is fine.
+        SCHEMA_CI_BRIDGE: "1"
+      run: |
+        # Run the CLI bridge and capture markdown to a file.
+        # `--body-file -` would also work via stdin but a
+        # tempfile is more robust to log interleaving.
+        body_file="$(mktemp)"
+        echo "body_file=$body_file" >> "$GITHUB_OUTPUT"
+
+        # The bridge can exit non-zero AND still produce a
+        # diagnostic markdown block. Capture both.
+        if node --experimental-strip-types src/cli/index.ts pr-review-md \
+            "$GITHUB_WORKSPACE" \
+            "${{ inputs.base-ref }}" \
+            "${{ steps.detect-sha.outputs.sha }}" \
+            "${{ inputs.studio-base-url }}" \
+            > "$body_file"; then
+          echo "schema_status=ok" >> "$GITHUB_OUTPUT"
+        else
+          echo "schema_status=error" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Post or update sticky PR comment
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        STICKY_MARKER: "<!-- schema:pr-review:sticky -->"
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+      run: |
+        # If a previous comment with the sticky marker exists,
+        # edit it. Otherwise post a fresh one. `gh api` keeps
+        # this deterministic across re-runs (no comment stack).
+        if [ -z "$PR_NUMBER" ]; then
+          echo "::warning::PR_NUMBER missing — not a pull_request trigger; skipping comment"
+          exit 0
+        fi
+
+        existing="$(gh api "/repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\") | select(.body | contains(\"${STICKY_MARKER}\")) | .id" \
+            | head -n 1)"
+
+        if [ -n "$existing" ]; then
+          gh api --method PATCH \
+            "/repos/${{ github.repository }}/issues/comments/${existing}" \
+            --field body="@${{ steps.render.outputs.body_file }}"
+        else
+          gh pr comment "${PR_NUMBER}" \
+            --body-file "${{ steps.render.outputs.body_file }}"
+        fi

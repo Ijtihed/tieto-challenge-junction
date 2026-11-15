@@ -1,7 +1,11 @@
 // Challenge mode: Studio opens one repo and only shows the agent-PR review flow.
 // Set VITE_CHALLENGE_MODE=0 to get the full Studio back.
 export const CHALLENGE_MODE = import.meta.env.VITE_CHALLENGE_MODE !== "0";
-export const CHALLENGE_REPO: string = import.meta.env.VITE_CHALLENGE_REPO ?? "/home/ijtihed/junction26-messagepack-csharp";
+// The repo under review: VITE_CHALLENGE_REPO if set, else the server's default
+// (SCHEMA_TRUST_REPO or ~/junction26-messagepack-csharp), then whatever path was opened.
+let repo: string = import.meta.env.VITE_CHALLENGE_REPO ?? "";
+export const challengeRepo = () => repo;
+export const setChallengeRepo = (path: string) => { repo = path; };
 
 function fnv1a64Hex(input: string): string {
   let hash = 0xcbf29ce484222325n;

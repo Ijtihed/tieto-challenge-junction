@@ -5,7 +5,7 @@ import { useTrust, type AgentRun, type Receipt, type RepoMap as RepoMapData } fr
 import { eventsFromReceipt, eventsFromRun, finalState, type MapEvent } from "./mapModel";
 import { ACT_COLOR, type ActKind, type GraphMarks } from "./RepoGraph";
 import { applyCanvasMarks, describeCanvasEdge, loadCurated } from "@/lib/curatedGraph";
-import { CHALLENGE_REPO } from "@/lib/challenge";
+import { challengeRepo } from "@/lib/challenge";
 import { syncPlanFromRun } from "@/lib/agentPlanBridge";
 
 
@@ -94,7 +94,7 @@ export default function RepoMap() {
   const marks = map ? marksAt(map, events, head, receipt, finished) : null;
 
   // Schema's own canvas shows the curated map; this layer only drives its highlights and plan panel.
-  useEffect(() => { if (map) loadCurated(map, CHALLENGE_REPO); }, [map]);
+  useEffect(() => { if (map) loadCurated(map, challengeRepo()); }, [map]);
   useEffect(() => { syncPlanFromRun(run); }, [run]);
   useEffect(() => {
     if (!marks) return;

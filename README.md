@@ -7,15 +7,9 @@
 > the architectural rules your team has set. Senior engineers
 > stop blindly trusting AI agents. They start verifying.
 
-**Read [`VISION.md`](VISION.md) first** for the full product
-vision. Architecture spec at [`architecture/schema-v3.md`](architecture/schema-v3.md).
-Research corpus (14 docs, ~27k lines) in [`research/`](research/).
-
-> **Marketing site / landing page:** [`site/`](site/) — Next.js app
-> deployed at [schema-coral.vercel.app](https://schema-coral.vercel.app).
-> Auto-deploys from `main` (Vercel root directory = `site`). See
-> [`site/README.md`](site/README.md). The `site/` folder is its own
-> independent Next.js project, not a workspace of the OSS core.
+**Junction 2026, Tieto "Earned Trust in AI Code":** start at [`junction/README.md`](junction/README.md)
+(how to run it) and [`junction/CONCEPT.md`](junction/CONCEPT.md) (concept card). Architecture spec at
+[`architecture/schema-v3.md`](architecture/schema-v3.md).
 
 Schema gives AI agents and senior+ engineers a queryable project
 graph over MCP. Point it at any repo — TypeScript, Python, Go,
@@ -347,22 +341,6 @@ npm install
 npm run build        # Compile extension
 npm run package      # Build .vsix
 ```
-
-### Landing site
-
-Live at [schema-coral.vercel.app](https://schema-coral.vercel.app);
-auto-deploys from `main` (Vercel root directory = `site`). Full
-details in [`site/README.md`](site/README.md).
-
-```bash
-cd site
-npm install
-npm run dev          # Next.js on :3000
-npm run build        # Production build
-npm test             # Auth + API tests
-```
-
----
 
 ## Environment variables
 

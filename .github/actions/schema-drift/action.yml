@@ -1,0 +1,132 @@
+name: schema-drift
+description: >
+  Run Schema's `drift.generate` on the current main and open
+  (or update) a PR that writes `architecture/drift.md`. Local-
+  clone-only per `architecture/v1-launch-plan.md` Q14 — this
+  action is NOT intended to be published to the GitHub Actions
+  Marketplace.
+
+inputs:
+  window-days:
+    description: >
+      Look-back window in days passed to `drift.generate`.
+      Default 7 matches the weekly cron in the workflow YAML.
+    required: false
+    default: "7"
+  drift-file:
+    description: >
+      Path within the repo where the drift report lands.
+      Defaults to `architecture/drift.md`. The file is
+      overwritten atomically each run.
+    required: false
+    default: architecture/drift.md
+  pr-branch:
+    description: >
+      Branch the action commits the drift file on. Defaults to
+      `schema-drift/<YYYY-MM-DD>`. The PR is opened or updated
+      idempotently against `main`.
+    required: false
+    default: ""
+  base-branch:
+    description: >
+      Target branch for the drift PR.
+    required: false
+    default: main
+
+runs:
+  using: composite
+  steps:
+    - name: Render drift.md
+      id: render
+      shell: bash
+      run: |
+        # §0.6.4 DC fix: render to a tempfile first, then only
+        # move to the final path on success. If the bridge
+        # exits non-zero, the previous drift.md stays
+        # intact instead of being clobbered with an error
+        # block. The CLI writes markdown to stdout
+        # regardless of exit code, so the redirect alone
+        # isn't safe.
+        tmp_file="$(mktemp)"
+        if node --experimental-strip-types src/cli/index.ts drift-md \
+            "$GITHUB_WORKSPACE" \
+            "${{ inputs.window-days }}" \
+            > "$tmp_file"; then
+          mv "$tmp_file" "${{ inputs.drift-file }}"
+          echo "drift_file=${{ inputs.drift-file }}" >> "$GITHUB_OUTPUT"
+        else
+          echo "::error::schema drift-md failed; preserving previous ${{ inputs.drift-file }} (tempfile at $tmp_file)"
+          exit 1
+        fi
+
+    - name: Detect changes
+      id: changes
+      shell: bash
+      run: |
+        # If git sees no SUBSTANTIVE diff against the base
+        # branch, skip the PR open step. We strip the
+        # "Generated YYYY-MM-DD" header line (and the snapshot
+        # date range) before diffing so a same-content drift
+        # report on a fresh date doesn't open a no-op PR every
+        # cron. Step 9b DC fix — without this, the weekly cron
+        # opens a no-op PR every Monday morning.
+        committed="$(mktemp)"
+        current="$(mktemp)"
+        # Get the committed version (empty if file doesn't exist yet)
+        git show "HEAD:${{ inputs.drift-file }}" 2>/dev/null > "$committed" || true
+        cat "${{ inputs.drift-file }}" > "$current"
+        # Strip date stamps from both sides.
+        sed -E -i.bak 's/[0-9]{4}-[0-9]{2}-[0-9]{2}/DATE/g' "$committed" "$current"
+        if diff -q "$committed" "$current" > /dev/null; then
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+        fi
+        rm -f "$committed" "$current" "${committed}.bak" "${current}.bak"
+
+    - name: Compute PR branch name
+      id: branch
+      if: steps.changes.outputs.changed == 'true'
+      shell: bash
+      run: |
+        branch="${{ inputs.pr-branch }}"
+        if [ -z "$branch" ]; then
+          branch="schema-drift/$(date +%F)"
+        fi
+        echo "branch=$branch" >> "$GITHUB_OUTPUT"
+
+    - name: Commit + push drift branch
+      if: steps.changes.outputs.changed == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        BRANCH: ${{ steps.branch.outputs.branch }}
+        BASE: ${{ inputs.base-branch }}
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git checkout -B "$BRANCH"
+        git add "${{ inputs.drift-file }}"
+        git commit -m "chore(drift): refresh ${{ inputs.drift-file }}"
+        git push -u origin "$BRANCH" --force-with-lease
+
+    - name: Open or update drift PR
+      if: steps.changes.outputs.changed == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        BRANCH: ${{ steps.branch.outputs.branch }}
+        BASE: ${{ inputs.base-branch }}
+      run: |
+        # `gh pr list` matches by head; if a PR already exists
+        # the push above updated it. Otherwise open a new one.
+        existing="$(gh pr list --head "$BRANCH" --json number --jq '.[0].number' || echo "")"
+        if [ -z "$existing" ]; then
+          gh pr create \
+            --base "$BASE" \
+            --head "$BRANCH" \
+            --title "chore(drift): refresh ${{ inputs.drift-file }}" \
+            --body "Automated drift report refresh by \`schema-drift\` (window: ${{ inputs.window-days }} days). See \`${{ inputs.drift-file }}\` for the rendered report. This is the weekly cron output per \`architecture/v1-launch-plan.md\` Step 9b. Local-clone-only (no Marketplace listing, Q14)."
+        else
+          echo "Drift PR #$existing already exists; force-push updated it"
+        fi

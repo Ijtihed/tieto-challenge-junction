@@ -46,12 +46,12 @@ after(async () => {
 });
 
 describe("serve integration — full pipeline over HTTP", () => {
-  it("tools/list reports all 51 registered actions", async () => {
+  it("tools/list reports all 72 registered actions", async () => {
     // Step 1 added `caching.stats`: 48 → 49.
     // Step 5a added `workspace.watch_start` + `workspace.watch_stop`: 49 → 51.
     const json = await rpc("tools/list");
     const result = json["result"] as { tools: { name: string }[] };
-    assert.equal(result.tools.length, 54);
+    assert.equal(result.tools.length, 72);
     const names = result.tools.map((t) => t.name).sort();
     assert.ok(names.includes("workspace.open"));
     assert.ok(names.includes("workspace.list_files"));

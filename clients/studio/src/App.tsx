@@ -12,7 +12,7 @@ import EvidenceView from "@/components/trust/EvidenceView";
 import { useTrust } from "@/state/trust";
 import ViewToggle from "@/components/trust/ViewToggle";
 import RepoMap from "@/components/trust/RepoMap";
-import { CHALLENGE_MODE, CHALLENGE_REPO } from "@/lib/challenge";
+import { CHALLENGE_MODE, challengeRepo, setChallengeRepo } from "@/lib/challenge";
 import { loadCurated } from "@/lib/curatedGraph";
 import { callTool, onMcpStatus } from "@/mcp-client";
 import type { RepoMap as RepoMapData } from "@/state/trust";
@@ -133,7 +133,13 @@ const INITIAL_STEPS: LoadStep[] = [
 
 function RepoLanding({ onOpened }: { onOpened: () => void }) {
   const loadGraph = useStore((s) => s.loadGraph);
-  const [pathInput, setPathInput] = useState(CHALLENGE_MODE ? CHALLENGE_REPO : "");
+  const [pathInput, setPathInput] = useState(CHALLENGE_MODE ? challengeRepo() : "");
+  useEffect(() => {
+    if (!CHALLENGE_MODE || challengeRepo()) return;
+    callTool<{ defaultRepo: string }>("trust.list_requirements", {})
+      .then((d) => setPathInput((cur) => cur || d.defaultRepo))
+      .catch(() => undefined);
+  }, []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [steps, setSteps] = useState<LoadStep[]>(INITIAL_STEPS);
@@ -292,6 +298,7 @@ function RepoLanding({ onOpened }: { onOpened: () => void }) {
         setStep("load", "running");
         const map = await callTool<RepoMapData>("repo.map", {});
         useTrust.setState({ map });
+        setChallengeRepo(path);
         loadCurated(map, path);
         setStep("load", "done", `${map.nodes.length} components in ${map.groups.length} modules`);
         setStep("layout", "done", "rendering canvas...");

@@ -23,11 +23,12 @@ describe("v1-readiness invariant: action count", () => {
   // Step 5a: + `workspace.watch_start` + `workspace.watch_stop` = 51.
   // Step 9a: + `drift.generate` = 52.
   // Step 7b: + `graph.entry_points` = 54.
-  it("server registers exactly 54 active actions", () => {
+  // Tieto challenge: + trust.*, agent.*, issues.*, repo.* and related actions = 72.
+  it("server registers exactly 72 active actions", () => {
     const { dispatcher } = createSchemaServer({ port: 0 });
     const tools = dispatcher.listTools();
-    assert.equal(tools.tools.length, 54,
-      `Expected 54 actions but got ${tools.tools.length}: ${tools.tools.map(t => t.name).join(", ")}`);
+    assert.equal(tools.tools.length, 72,
+      `Expected 72 actions but got ${tools.tools.length}: ${tools.tools.map(t => t.name).join(", ")}`);
 
   });
 });
@@ -61,13 +62,13 @@ describe("v1-readiness invariant: canon count", () => {
 // ── Invariant 4: extractor count ──
 
 describe("v1-readiness invariant: extractor count", () => {
-  it("workspace.open reports 7 extractors", async () => {
+  it("workspace.open reports 8 extractors", async () => {
     const r = await workspaceOpen.handle({ uris: [POLYGLOT_URI] });
     assert.equal(r.ok, true);
     if (!r.ok) return;
     const data = r.data as { sessionId: string; workspace: { extractors: { id: string }[] } };
-    assert.equal(data.workspace.extractors.length, 7,
-      `Expected 7 extractors, got ${data.workspace.extractors.length}: ${data.workspace.extractors.map(e => e.id).join(", ")}`);
+    assert.equal(data.workspace.extractors.length, 8,
+      `Expected 8 extractors, got ${data.workspace.extractors.length}: ${data.workspace.extractors.map(e => e.id).join(", ")}`);
     await workspaceClose.handle({ sessionId: data.sessionId });
   });
 });
