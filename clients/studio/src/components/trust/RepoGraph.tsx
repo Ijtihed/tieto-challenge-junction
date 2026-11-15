@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { RepoMap } from "@/state/trust";
 
 export type ActKind = "read" | "search" | "edit" | "command" | "result";
-export const ACT_COLOR: Record<ActKind, string> = { read: "#60a5fa", search: "#a78bfa", edit: "#f59e0b", command: "#34d399", result: "#e4e4e7" };
+// Looking is neutral; only a change gets the agent's accent.
+export const ACT_COLOR: Record<ActKind, string> = { read: "#B9B9C0", search: "#B9B9C0", edit: "#D97757", command: "#B9B9C0", result: "#F5F5F7" };
 
 export interface GraphMarks {
   touched?: Map<string, ActKind>;

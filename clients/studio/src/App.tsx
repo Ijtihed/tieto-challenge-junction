@@ -380,6 +380,20 @@ function RepoLanding({ onOpened }: { onOpened: () => void }) {
     if (trimmed) openPath(trimmed);
   }, [pathInput, openPath]);
 
+  if (CHALLENGE_MODE) {
+    return (
+      <ChallengeLanding
+        path={pathInput}
+        onPath={setPathInput}
+        onOpen={handleOpen}
+        loading={loading}
+        progress={progress}
+        step={steps.find((x) => x.status === "running") ?? steps.filter((x) => x.status === "done").pop() ?? null}
+        error={error}
+      />
+    );
+  }
+
   return (
     <div className="fixed inset-0 bg-surface flex items-center justify-center">
       <div className="max-w-md w-full px-8">
@@ -620,6 +634,67 @@ function RepoLanding({ onOpened }: { onOpened: () => void }) {
           </div>
         </div>
         </>)}
+      </div>
+    </div>
+  );
+}
+
+/** Challenge-mode opening screen: says what the product does, then one action. */
+function ChallengeLanding(props: {
+  path: string; onPath: (p: string) => void; onOpen: () => void;
+  loading: boolean; progress: number; step: LoadStep | null; error: string | null;
+}) {
+  const [editing, setEditing] = useState(false);
+  const repoName = props.path.replace(/\/+$/, "").split("/").pop() || "repository";
+  return (
+    <div className="fixed inset-0 bg-surface overflow-hidden flex items-center justify-center" data-testid="repo-landing-hero">
+      <div className="relative w-full max-w-[620px] px-6 text-center">
+        <SchemaLogo className="w-10 h-10 mx-auto ui-rise" />
+        <h1 className="ui-rise mt-8 text-[2.9rem] leading-[1.04] font-semibold tracking-[-0.04em] text-on-surface [text-wrap:balance]" style={{ "--i": 1 } as React.CSSProperties}>
+          Agent code, reviewed with evidence.
+        </h1>
+        <p className="ui-rise mt-5 mx-auto max-w-[27rem] text-[1.0625rem] leading-[1.55] text-on-surface-muted [text-wrap:pretty]" style={{ "--i": 2 } as React.CSSProperties}>
+          Schema checks an agent's pull request against the code. A named engineer signs it.
+        </p>
+
+        <div className="ui-rise mt-10 flex flex-col items-center" style={{ "--i": 3 } as React.CSSProperties}>
+          {props.loading ? (
+            <div className="w-full max-w-[22rem]" role="status" aria-live="polite">
+              <div className="h-[3px] w-full rounded-full bg-[var(--ui-fill)] overflow-hidden">
+                <div className="h-full rounded-full bg-on-surface transition-[width] duration-700 ease-out" style={{ width: `${Math.max(4, props.progress)}%` }} />
+              </div>
+              <p key={props.step?.id ?? "start"} className="ui-fade mt-4 text-[0.875rem] text-on-surface-variant">{props.step?.label ?? "Opening"}</p>
+              <p className="mt-1 ui-meta truncate">{props.step?.sub ?? `Reading ${repoName}`}</p>
+            </div>
+          ) : (
+            <>
+              <button className="ui-btn ui-btn-primary ui-btn-lg" onClick={props.onOpen} disabled={!props.path.trim()}>
+                Open {repoName}
+                <span className="ui-arrow material-symbols-outlined text-[18px] leading-none -mr-1" aria-hidden="true">arrow_forward</span>
+              </button>
+              {editing ? (
+                <input
+                  className="opener-input ui-input ui-code mt-4 max-w-[26rem] text-center"
+                  type="text"
+                  aria-label="Repository folder"
+                  value={props.path}
+                  onChange={(e) => props.onPath(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") props.onOpen(); }}
+                  autoFocus
+                />
+              ) : (
+                <button className="mt-4 ui-meta hover:text-on-surface-variant transition-colors" onClick={() => setEditing(true)}>
+                  Open another folder
+                </button>
+              )}
+            </>
+          )}
+          {props.error && (
+            <p className="ui-fade mt-6 max-w-[26rem] ui-chip ui-chip-fail !whitespace-normal !items-start text-left">
+              {props.error}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -881,6 +956,7 @@ export default function WorkspacePage() {
   const apiLoading = useStore((s) => s.apiLoadingCount > 0);
   const diffLoading = useStore((s) => s.diffComputing);
   const planBusy = useStore((s) => s.planPhase === "streaming" || s.planPhase === "running");
+  const trustOpen = useTrust((s) => s.open);
 
   if (resuming) {
     const repoLabel = useStore.getState().repo?.label ?? "workspace";
@@ -941,8 +1017,9 @@ export default function WorkspacePage() {
             </div>
             <CommandBar />
           </main>
+          {/* Challenge mode shows one panel at a time: issues, then the run, then the review. */}
           <SidePanel />
-          <PlanPanel />
+          {CHALLENGE_MODE && trustOpen ? null : <PlanPanel />}
           <TrustPanel />
         </div>
         <CheatSheet />

@@ -53,28 +53,28 @@ function useNotifications(): Note[] {
     for (const st of run.steps.slice(s.steps)) {
       if (st.kind === "edit") push({ icon: "edit", color: ACT_COLOR.edit, title: "Claude edited a file", body: st.file ?? st.title });
       if (st.kind === "command" && /dotnet test/.test(st.title)) push({ icon: "science", color: ACT_COLOR.command, title: "Claude is running tests", body: st.title.replace(/^\$ /, "") });
-      if (st.title.startsWith("CI (")) push({ icon: "deployed_code", color: "#8a9bb0", title: "CI started", body: st.title });
-      if (st.title.startsWith("CI · ") && !st.title.includes("passed")) push({ icon: "error", color: "#f87171", title: "CI step failed: Claude will try to fix it", body: st.title.slice(5) });
-      if (st.title.startsWith("CI · vulnerable packages")) push({ icon: st.title.includes("passed") ? "verified_user" : "gpp_bad", color: st.title.includes("passed") ? "#4ade80" : "#f87171", title: "Supply-chain check", body: st.title.slice(5) });
+      if (st.title.startsWith("CI (")) push({ icon: "deployed_code", color: "var(--color-on-surface-variant)", title: "CI started", body: st.title });
+      if (st.title.startsWith("CI · ") && !st.title.includes("passed")) push({ icon: "error", color: "var(--color-phase-fail)", title: "CI failed, Claude is fixing it", body: st.title.slice(5) });
+      if (st.title.startsWith("CI · vulnerable packages")) push({ icon: st.title.includes("passed") ? "verified_user" : "gpp_bad", color: st.title.includes("passed") ? "var(--color-phase-pass)" : "var(--color-phase-fail)", title: "Supply-chain check", body: st.title.slice(5) });
     }
     s.steps = run.steps.length;
     if (s.status === "running" && run.status !== "running") {
       push(run.status === "done"
-        ? { icon: "task_alt", color: "#4ade80", title: "Claude finished: open a PR?", body: `${run.filesChanged?.length ?? 0} files changed · review it in the plan panel, then Open pull request` }
-        : { icon: "error", color: "#f87171", title: "Agent run failed", body: run.error });
+        ? { icon: "task_alt", color: "var(--color-phase-pass)", title: "Claude finished", body: `${run.filesChanged?.length ?? 0} files changed` }
+        : { icon: "error", color: "var(--color-phase-fail)", title: "Agent run failed", body: run.error });
     }
     s.status = run.status;
   }, [run]);
   useEffect(() => {
     if (receipt && seen.current.receipt !== receipt.id && run?.status === "done") {
       seen.current.receipt = receipt.id;
-      push({ icon: "fact_check", color: "#e4e4e7", title: `Receipt: ${receipt.risk.tierLabel}`, body: `Owner reads ${receipt.summary.readLines} of ${receipt.summary.totalLines} lines · ${receipt.refusals.length} question(s) for you` });
+      push({ icon: "fact_check", color: "var(--color-on-surface)", title: `Receipt ready: ${receipt.risk.tierLabel.toLowerCase()}`, body: `Read ${receipt.summary.readLines} of ${receipt.summary.totalLines} lines, ${receipt.refusals.length} questions` });
     }
   }, [receipt, run?.status]);
   useEffect(() => {
     if (pr && seen.current.pr !== pr.url) {
       seen.current.pr = pr.url;
-      push({ icon: "merge", color: "#8a9bb0", title: `PR #${pr.number} opened`, body: "Live page with the graph, actions and decisions", href: pr.pageUrl ?? pr.url });
+      push({ icon: "merge", color: "var(--color-on-surface-variant)", title: `PR #${pr.number} opened`, body: "Open the live review page", href: pr.pageUrl ?? pr.url });
     }
   }, [pr]);
   return notes;
@@ -115,14 +115,13 @@ export default function RepoMap() {
   return (
     <div className="absolute inset-0 pointer-events-none [&>*]:pointer-events-auto">
       <EdgeHoverCard />
-      <div className="absolute top-3 right-3 z-30 flex flex-col gap-2 w-[340px]">
+      <div className="absolute top-3 left-3 z-30 flex flex-col gap-2 w-[300px]" role="status" aria-live="polite">
         {notes.map((n) => (
-          <a key={n.id} href={n.href} target={n.href ? "_blank" : undefined} rel="noreferrer"
-            className="flex gap-3 items-start bg-surface-dim/95 backdrop-blur border border-outline-variant px-3 py-2.5 shadow-2xl animate-[fadeIn_200ms_ease-out]">
-            <span className="material-symbols-outlined text-[18px] mt-0.5" style={{ color: n.color }}>{n.icon}</span>
+          <a key={n.id} href={n.href} target={n.href ? "_blank" : undefined} rel="noreferrer" className="ui-pop ui-rise flex gap-3 items-start px-3.5 py-3">
+            <span className="material-symbols-outlined text-[18px] mt-px" style={{ color: n.color, fontVariationSettings: "'wght' 300" }}>{n.icon}</span>
             <span className="min-w-0">
-              <span className="block text-xs text-white">{n.title}</span>
-              {n.body && <span className="block text-[11px] text-on-surface-variant font-[JetBrains_Mono] truncate">{n.body}</span>}
+              <span className="block text-[0.8125rem] font-medium text-on-surface">{n.title}</span>
+              {n.body && <span className="block ui-meta mt-0.5 line-clamp-2">{n.body}</span>}
             </span>
           </a>
         ))}
@@ -146,11 +145,11 @@ function EdgeHoverCard() {
   }, []);
   if (!info) return null;
   return (
-    <div className="fixed z-50 max-w-[380px] bg-surface-dim/95 backdrop-blur border border-outline-variant px-3 py-2.5 shadow-2xl pointer-events-none" style={{ left: info.x + 14, top: info.y + 14 }}>
-      <div className="text-xs text-white font-[JetBrains_Mono]">{info.title}</div>
-      <div className="text-[11px] text-on-surface-variant mt-1 leading-relaxed">{info.description}</div>
+    <div className="fixed z-50 max-w-[380px] ui-pop ui-fade px-3.5 py-3 pointer-events-none" style={{ left: info.x + 14, top: info.y + 14 }}>
+      <div className="text-[0.8125rem] font-medium text-on-surface">{info.title}</div>
+      <div className="ui-meta mt-1 leading-relaxed">{info.description}</div>
       {info.examples.length > 0 && (
-        <ul className="mt-1.5 space-y-0.5">{info.examples.map((x) => <li key={x} className="text-[10.5px] font-[JetBrains_Mono] text-on-surface-muted">{x}</li>)}</ul>
+        <ul className="mt-2 space-y-0.5">{info.examples.map((x) => <li key={x} className="ui-meta ui-code text-on-surface-faint">{x}</li>)}</ul>
       )}
     </div>
   );

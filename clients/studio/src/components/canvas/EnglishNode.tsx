@@ -70,7 +70,7 @@ export default function EnglishNode({ data }: { data: EnglishNodeData }) {
         <div className="flex items-center gap-3">
           <div
             className="w-2 h-2 rounded-full shrink-0"
-            style={{ background: color, boxShadow: `0 0 6px ${color}66` }}
+            style={{ background: color }}
           />
           <span className="text-[0.95rem] font-semibold text-white tracking-tight">
             {agg.label}

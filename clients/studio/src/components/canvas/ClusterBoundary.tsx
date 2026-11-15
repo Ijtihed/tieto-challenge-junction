@@ -1,5 +1,6 @@
 "use client";
 
+import { useStore as useFlowStore } from "@xyflow/react";
 import { TechLogoRow, detectTech, stripTechSuffix } from "./TechLogo";
 
 export interface BoundaryData {
@@ -33,6 +34,8 @@ export default function ClusterBoundary({ data }: { data: BoundaryData }) {
   const shape = data.canonicalShape ?? "mixed";
   const shapeIcon = SHAPE_ICONS[shape] ?? "○";
   const stars = Math.min(data.entryPointCount ?? 0, 3);
+  // Quantised so panning and tiny zoom changes do not re-render every frame.
+  const labelScale = useFlowStore((st) => Math.round(Math.min(4.4, Math.max(1, 0.95 / st.transform[2])) * 10) / 10);
 
   return (
     <div
@@ -40,96 +43,43 @@ export default function ClusterBoundary({ data }: { data: BoundaryData }) {
       style={{
         width: data.width,
         height: data.height,
-        opacity: data.dimmed ? 0.2 : 1,
-        filter: data.dimmed ? "saturate(0) brightness(0.6)" : undefined,
+        opacity: data.dimmed ? 0.4 : 1,
         transition: "opacity 400ms cubic-bezier(0.22,1,0.36,1), filter 400ms cubic-bezier(0.22,1,0.36,1)",
       }}
       className="relative pointer-events-none select-none"
     >
-      {/* Outer glow */}
-      <div
-        className="absolute -inset-[1px]"
-        style={{
-          borderRadius: 16,
-          background: `radial-gradient(ellipse at 50% 0%, ${data.color}12 0%, transparent 70%)`,
-        }}
-      />
-      {/* Main boundary frame */}
+      {/* Frame: one hairline and a faint lift. Module identity is the caption, not a colour. */}
       <div
         className="absolute inset-0"
         style={{
-          border: `1px solid ${data.color}40`,
-          borderRadius: 16,
-          background: `${data.color}06`,
-        }}
-      />
-      {/* Top accent line */}
-      <div
-        className="absolute top-0 left-4 right-4"
-        style={{
-          height: 1,
-          background: `linear-gradient(90deg, transparent, ${data.color}60, transparent)`,
+          border: "1px solid var(--ui-hairline)",
+          borderRadius: 18,
+          background: "rgba(255, 255, 255, 0.018)",
         }}
       />
 
-      {/* Label pill */}
+      {/* Caption above the frame. It counter-scales with zoom so module names stay readable in the overview. */}
       <div
-        className="absolute top-2 left-3 flex items-center gap-1.5 pointer-events-auto"
-        style={{ zIndex: 10 }}
+        className="absolute left-1 bottom-full mb-2 flex items-center gap-2 pointer-events-auto whitespace-nowrap"
+        style={{ zIndex: 10, transform: `scale(${labelScale})`, transformOrigin: "bottom left", transition: "transform 200ms cubic-bezier(0.22,1,0.36,1)" }}
       >
-        {/* Shape + name */}
-        <div
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
-          style={{
-            background: `${data.color}0C`,
-            border: `1px solid ${data.color}25`,
-            backdropFilter: "blur(8px)",
-          }}
-        >
-          <span style={{ color: data.color, fontSize: 11 }}>
-            {shapeIcon}
-          </span>
-          <span
-            className="text-[13px] font-semibold tracking-tight"
-            style={{ color: data.color }}
-          >
-            {cleanLabel}
-          </span>
-          {techs.length > 0 && <TechLogoRow techs={techs} size={12} />}
-        </div>
-
-        {/* Node count */}
-        <span
-          className="text-[11px] px-2 py-0.5 rounded-md"
-          style={{
-            color: `${data.color}90`,
-            background: `${data.color}08`,
-            border: `1px solid ${data.color}15`,
-          }}
-        >
+        {shape !== "mixed" && <span style={{ color: "var(--color-on-surface-muted)", fontSize: 11 }}>{shapeIcon}</span>}
+        <span className="text-[13px] font-semibold tracking-tight" style={{ color: "var(--color-on-surface-variant)" }}>
+          {cleanLabel}
+        </span>
+        {techs.length > 0 && <TechLogoRow techs={techs} size={12} />}
+        <span className="text-[12px] tabular-nums" style={{ color: "var(--color-on-surface-faint)" }}>
           {data.count}
         </span>
-
-        {/* Shape badge */}
         {shape !== "mixed" && (
-          <span
-            className="text-[10px] uppercase tracking-widest font-medium px-2 py-0.5 rounded-md"
-            style={{
-              color: `${data.color}B0`,
-              background: `${data.color}0A`,
-              border: `1px solid ${data.color}20`,
-              letterSpacing: "0.08em",
-            }}
-          >
+          <span className="text-[11px]" style={{ color: "var(--color-on-surface-muted)" }}>
             {SHAPE_LABELS[shape]}
           </span>
         )}
-
-        {/* Entry point stars */}
         {stars > 0 && (
           <span
             className="text-[11px] flex gap-px"
-            style={{ color: "#FBBF24" }}
+            style={{ color: "var(--color-on-surface-muted)" }}
             title={`${data.entryPointCount} entry point${(data.entryPointCount ?? 0) > 1 ? "s" : ""}`}
           >
             {Array.from({ length: stars }, (_, i) => (

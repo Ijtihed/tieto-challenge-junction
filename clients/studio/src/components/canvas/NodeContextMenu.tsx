@@ -174,7 +174,7 @@ export default function NodeContextMenu({ x, y, nodeId, onClose }: Props) {
       data-testid="node-context-menu"
       role="menu"
       style={{ left, top, width: MENU_W }}
-      className="fixed z-[150] border border-outline bg-surface/95 backdrop-blur shadow-2xl"
+      className="fixed z-[150] border border-outline bg-surface-container rounded-[10px] overflow-hidden"
     >
       <div className="px-3 py-2 border-b border-outline-variant">
         <p

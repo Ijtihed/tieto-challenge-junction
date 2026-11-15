@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { callTool } from "@/mcp-client";
 import { useTrust } from "@/state/trust";
+import { useStore } from "@/state/store";
+import ClaudeCrab from "@/components/ClaudeCrab";
 
 interface IssueRun { runId: string; status: string; startedAt: string; branch: string; prUrl?: string; pageUrl?: string }
 interface Issue {
@@ -12,11 +14,13 @@ interface Issue {
 interface Connector { id: string; name: string; workspace: string; transport: string; status: string }
 interface IssuesData { note: string; connectors: Connector[]; syncedAt: string; issues: Issue[] }
 
-const TRACKER: Record<string, { label: string; color: string; glyph: string }> = {
-  linear: { label: "Linear", color: "#8b8dfc", glyph: "◆" },
-  jira: { label: "Jira", color: "#4c9aff", glyph: "▲" },
-};
-const PRIORITY: Record<string, string> = { Urgent: "text-phase-fail", High: "text-phase-applying", Medium: "text-kind-service", Low: "text-on-surface-muted" };
+const TRACKER: Record<string, string> = { linear: "Linear", jira: "Jira" };
+// Only the two priorities that change what you do get a dot.
+const PRIORITY: Record<string, string> = { Urgent: "ui-chip-fail", High: "ui-chip-warn" };
+
+export const Arrow = ({ out = false }: { out?: boolean }) => (
+  <span className="ui-arrow material-symbols-outlined text-[17px] leading-none" style={{ fontVariationSettings: "'wght' 300" }} aria-hidden="true">{out ? "arrow_outward" : "arrow_forward"}</span>
+);
 
 function ago(iso: string): string {
   const s = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000));
@@ -41,117 +45,107 @@ export default function ReviewList() {
     return () => { alive = false; clearInterval(t); };
   }, [refresh]);
 
-  if (!data) return <div className="p-4 text-xs text-on-surface-muted">Syncing issues from trackers…</div>;
+  if (!data) {
+    return (
+      <div className="px-5 pb-4 ui-divide" aria-busy="true">
+        {[0, 1, 2].map((i) => <div key={i} className="py-4"><div className="h-4 w-4/5 rounded bg-[var(--ui-fill)] schema-skeleton" /><div className="h-3 w-2/5 rounded bg-[var(--ui-fill)] schema-skeleton mt-2.5" /></div>)}
+        <p className="sr-only">Syncing issues</p>
+      </div>
+    );
+  }
   const q = query.trim().toLowerCase();
   const matches = (i: Issue) => !q || [i.key, i.title, i.status, i.priority, i.requirementId, ...i.labels].some((x) => x.toLowerCase().includes(q));
   // Everything shows until you search; issues with a run in progress always stay visible.
   const isActive = (i: Issue) => i.runs.some((r) => r.status === "running");
   const issues = data.issues.filter((i) => (filter === "all" || i.tracker === filter) && (matches(i) || isActive(i)));
   const visibleFor = (f: string) => data.issues.filter((i) => (f === "all" || i.tracker === f) && matches(i)).length;
-  const activeCount = data.issues.filter(isActive).length;
+  // The run takes over the panel; the list comes back from Issues in the top bar.
+  const focusRun = () => useStore.getState().setSidePanelView(null);
 
   return (
-    <div className="p-4 space-y-3">
-      <div className="space-y-1.5">
-        {data.connectors.map((c) => (
-          <div key={c.id} className="flex items-center gap-2 text-xs">
-            <span style={{ color: TRACKER[c.id]?.color }}>{TRACKER[c.id]?.glyph}</span>
-            <span className="text-white">{c.name}</span>
-            <span className="text-on-surface-muted font-[JetBrains_Mono]">{c.workspace}</span>
-            <span className="ml-auto flex items-center gap-1.5 text-[11px] text-phase-pass"><span className="w-1.5 h-1.5 rounded-full bg-phase-pass" />MCP · synced {ago(data.syncedAt)}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex items-center gap-2 border border-outline-variant bg-surface px-3 py-2 focus-within:border-neutral-500">
-        <span className="material-symbols-outlined text-[16px] text-on-surface-muted">search</span>
+    <div className="px-5 pb-5">
+      <label className="flex items-center gap-2.5 ui-input !py-0 h-9">
+        <span className="material-symbols-outlined text-[17px] text-on-surface-faint" style={{ fontVariationSettings: "'wght' 300" }}>search</span>
         <input
           autoFocus
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={`Search ${data.issues.length} issues: key, title or label`}
-          className="flex-1 bg-transparent text-xs text-white placeholder:text-on-surface-muted outline-none"
+          placeholder="Search"
+          aria-label="Search issues"
+          className="flex-1 bg-transparent text-[0.8125rem] text-on-surface placeholder:text-on-surface-faint outline-none"
         />
-        {query && <button onClick={() => setQuery("")} className="material-symbols-outlined text-[16px] text-on-surface-muted hover:text-white">close</button>}
-      </div>
+        {query && <button onClick={() => setQuery("")} aria-label="Clear search" className="material-symbols-outlined text-[16px] text-on-surface-muted hover:text-on-surface">close</button>}
+      </label>
 
-      <div className="flex gap-1 text-[11px]">
+      <div className="ui-tabs mt-3" role="group" aria-label="Tracker">
         {["all", ...data.connectors.map((c) => c.id)].map((f) => (
-          <button key={f} onClick={() => setFilter(f)} className={`px-2.5 py-1 border ${filter === f ? "border-schema-accent text-white" : "border-outline-variant text-on-surface-muted hover:text-white"}`}>
-            {f === "all" ? "All" : TRACKER[f]?.label} ({visibleFor(f)})
+          <button key={f} aria-pressed={filter === f} onClick={() => setFilter(f)}>
+            {f === "all" ? "All" : TRACKER[f]} <span className="text-on-surface-faint tabular-nums font-normal">{visibleFor(f)}</span>
           </button>
         ))}
       </div>
 
-      <div className="text-[11px] text-on-surface-muted">
-        {q
-          ? `${visibleFor(filter)} of ${data.issues.length} issues match “${query}”${activeCount ? ` · ${activeCount} in progress` : ""}`
-          : `${data.issues.length} issues synced${activeCount ? ` · ${activeCount} in progress` : ""}`}
-      </div>
       {issues.length === 0 && (
-        <div className="py-6 text-center text-xs text-on-surface-muted">
-          {`No issues match “${query}”.`}
+        <div className="py-12 text-center">
+          <p className="ui-body">Nothing matches "{query}".</p>
+          <button className="ui-btn mt-3" onClick={() => setQuery("")}>Clear search</button>
         </div>
       )}
-      {issues.map((i) => {
-        const t = TRACKER[i.tracker];
-        const active = i.runs.find((r) => r.status === "running");
-        return (
-          <div key={i.key} className="border border-outline-variant/60 bg-surface">
-            <div className="px-3 py-2.5 border-b border-outline-variant/60">
-              <div className="flex items-center gap-2 text-[11px]">
-                <span style={{ color: t?.color }}>{t?.glyph}</span>
-                <span className="font-[JetBrains_Mono] text-white">{i.key}</span>
-                <span className="text-on-surface-muted">· {i.status}</span>
-                <span className={`ml-auto ${PRIORITY[i.priority] ?? ""}`}>{i.priority}</span>
-              </div>
-              <div className="text-xs text-neutral-200 mt-1 leading-snug">{i.title}</div>
-              <div className="flex flex-wrap items-center gap-1 mt-1.5">
-                {i.labels.map((l) => <span key={l} className="text-[10px] px-1.5 border border-outline-variant text-on-surface-variant">{l}</span>)}
-                <span className="ml-auto text-[10px] text-on-surface-faint">{i.assignee} · {ago(i.updatedAt)}</span>
-              </div>
-            </div>
-            <IssueAction issue={i} busy={!!busy} onFix={() => void startFix(`Fix ${i.key} (#${i.requirementId.slice(4)}): ${i.title}`, i.requirementId)} onOpen={(runId) => { useTrust.setState({ open: false }); watchRun(runId); }} />
-          </div>
-        );
-      })}
-      <p className="text-[10px] text-on-surface-faint leading-relaxed">{data.note}</p>
+      <div className="ui-divide">
+        {issues.map((i, idx) => {
+          const last = i.runs[0];
+          const pr = last?.status === "done" && last.prUrl ? last : null;
+          return (
+            <article key={i.key} className="ui-rise pt-4 pb-2.5" style={{ "--i": idx } as React.CSSProperties}>
+              <h3 className="text-[0.9375rem] leading-[1.4] font-medium tracking-[-0.015em] text-on-surface [text-wrap:pretty]">{i.title}</h3>
+              <p className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 ui-meta">
+                <span className="ui-code">{i.key}</span>
+                <span>{i.status}</span>
+                <span className={`ui-chip ${PRIORITY[i.priority] ?? ""}`}>{i.priority}</span>
+                {pr && (
+                  <a href={pr.pageUrl ?? pr.prUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 text-on-surface-variant hover:text-on-surface transition-colors">
+                    PR #{pr.prUrl!.split("/").pop()}<span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'wght' 300" }} aria-hidden="true">arrow_outward</span>
+                  </a>
+                )}
+              </p>
+              <IssueAction
+                issue={i}
+                busy={!!busy}
+                onFix={() => { focusRun(); void startFix(`Fix ${i.key} (#${i.requirementId.slice(4)}): ${i.title}`, i.requirementId); }}
+                onOpen={(runId) => { focusRun(); useTrust.setState({ open: false }); watchRun(runId); }}
+              />
+            </article>
+          );
+        })}
+      </div>
+      <div className="ui-rule mt-1 pt-4" title={data.connectors.map((c) => `${c.name} · ${c.workspace} · ${c.status}`).join("\n")}>
+        <p className="ui-chip ui-chip-pass">Synced {ago(data.syncedAt)}</p>
+        <p className="ui-meta mt-1.5 leading-relaxed">{data.note}</p>
+      </div>
     </div>
   );
 }
 
-/** One button per issue, following the latest agent run: fix -> working -> open PR -> PR link. */
+/** One action per issue, following its latest agent run. The crab marks work done by Claude Code. */
 function IssueAction({ issue, busy, onFix, onOpen }: { issue: Issue; busy: boolean; onFix: () => void; onOpen: (runId: string) => void }) {
   const last = issue.runs[0];
-  const row = "w-full flex items-center gap-2 px-3 py-2.5 text-left text-xs border-t border-outline-variant/40";
   if (last?.status === "running") {
     return (
-      <button onClick={() => onOpen(last.runId)} className={`${row} text-phase-applying hover:bg-surface-container-high`}>
-        <span className="w-2 h-2 rounded-full bg-phase-applying animate-pulse" />Claude Code is working on this… <span className="ml-auto text-on-surface-muted">view</span>
+      <button onClick={() => onOpen(last.runId)} className="ui-action mt-1.5">
+        <ClaudeCrab walking />Claude is working<Arrow />
       </button>
-    );
-  }
-  if (last?.status === "done" && last.prUrl) {
-    return (
-      <div className={`${row} justify-between`}>
-        <a href={last.pageUrl ?? last.prUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-kind-service hover:underline">
-          <span className="material-symbols-outlined text-[16px]">merge</span>PR #{last.prUrl.split("/").pop()} opened
-        </a>
-        <button onClick={() => onOpen(last.runId)} className="text-on-surface-muted hover:text-white">details</button>
-      </div>
     );
   }
   if (last?.status === "done") {
     return (
-      <button onClick={() => onOpen(last.runId)} className={`${row} text-white hover:bg-surface-container-high`}>
-        <span className="material-symbols-outlined text-[16px] text-phase-pass">task_alt</span>Claude finished · review and open PR
+      <button onClick={() => onOpen(last.runId)} className="ui-action mt-1.5">
+        <ClaudeCrab />Review Claude's change<Arrow />
       </button>
     );
   }
   return (
-    <button disabled={busy} onClick={onFix} className={`${row} text-neutral-200 hover:bg-surface-container-high disabled:opacity-50`}>
-      <span className="material-symbols-outlined text-[16px] text-phase-applying">smart_toy</span>
-      {last?.status === "failed" ? "Last attempt failed · fix it with Claude Code" : "Fix it with Claude Code"}
+    <button disabled={busy} onClick={onFix} className="ui-action mt-1.5">
+      <ClaudeCrab />{last?.status === "failed" ? "Try again with Claude Code" : "Fix with Claude Code"}<Arrow />
     </button>
   );
 }

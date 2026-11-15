@@ -28,15 +28,15 @@ const STATUS: Record<string, string> = { A: "text-phase-pass", M: "text-phase-ap
 function Patch({ patch }: { patch: string }) {
   const lines = useMemo(() => parsePatch(patch), [patch]);
   return (
-    <div className="font-[JetBrains_Mono] text-[12px] leading-[1.55]">
+    <div className="font-[JetBrains_Mono] text-[12.5px] leading-[1.7] min-w-max pb-6">
       {lines.map((l, i) => l.kind === "hunk" ? (
-        <div key={i} className="px-3 py-1 bg-kind-service/10 text-kind-service/80 border-y border-outline-variant/40 sticky top-0">⋯ {l.text}</div>
+        <div key={i} className="px-5 py-1.5 text-on-surface-faint bg-surface-container sticky top-0">{l.text || "next change"}</div>
       ) : (
-        <div key={i} className={`flex ${l.kind === "add" ? "bg-phase-pass/10" : l.kind === "del" ? "bg-phase-fail/10" : ""}`}>
-          <span className="w-12 shrink-0 text-right pr-2 text-on-surface-faint select-none">{l.oldNo ?? ""}</span>
-          <span className="w-12 shrink-0 text-right pr-2 text-on-surface-faint select-none">{l.newNo ?? ""}</span>
-          <span className={`w-5 shrink-0 text-center select-none ${l.kind === "add" ? "text-phase-pass" : l.kind === "del" ? "text-phase-fail" : "text-on-surface-faint"}`}>{l.kind === "add" ? "+" : l.kind === "del" ? "−" : " "}</span>
-          <span className={`whitespace-pre pr-4 ${l.kind === "add" ? "text-[#bbf7d0]" : l.kind === "del" ? "text-[#fecaca]" : "text-neutral-300"}`}>{l.text}</span>
+        <div key={i} className={`flex ${l.kind === "add" ? "bg-phase-pass/[0.09]" : l.kind === "del" ? "bg-phase-fail/[0.09]" : ""}`}>
+          <span className="w-12 shrink-0 text-right pr-2 text-on-surface-faint/70 select-none tabular-nums">{l.oldNo ?? ""}</span>
+          <span className="w-12 shrink-0 text-right pr-2 text-on-surface-faint/70 select-none tabular-nums">{l.newNo ?? ""}</span>
+          <span className={`w-6 shrink-0 text-center select-none ${l.kind === "add" ? "text-phase-pass" : l.kind === "del" ? "text-phase-fail" : "text-on-surface-faint"}`}>{l.kind === "add" ? "+" : l.kind === "del" ? "−" : " "}</span>
+          <span className={`whitespace-pre pr-6 ${l.kind === "add" ? "text-[#c9f5dd]" : l.kind === "del" ? "text-[#ffd0cc]" : "text-on-surface-variant"}`}>{l.text}</span>
         </div>
       ))}
     </div>
@@ -66,8 +66,16 @@ export default function ChangesView({ runId, compact = false }: { runId: string;
     }
   }, [data, sel, runId, extra]);
 
-  if (error) return <div className="p-6 text-xs text-phase-fail">{error}</div>;
-  if (!data) return <div className="p-6 text-xs text-on-surface-muted">Loading changes…</div>;
+  if (error) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-center px-6">
+        <p className="ui-title">The diff did not load</p>
+        <p className="ui-body mt-2 max-w-md">The server could not read the agent's commit.</p>
+        <p className="ui-chip ui-chip-fail mt-3">{error}</p>
+      </div>
+    );
+  }
+  if (!data) return <div className="p-6 space-y-2" aria-busy="true">{[70, 55, 80, 40].map((w) => <div key={w} className="h-3 rounded-full bg-[var(--ui-fill)] schema-skeleton" style={{ width: `${w}%` }} />)}</div>;
 
   const authored = data.files.filter((f) => !f.generated);
   const generated = data.files.filter((f) => f.generated);
@@ -78,41 +86,45 @@ export default function ChangesView({ runId, compact = false }: { runId: string;
 
   const row = (f: FileDiff) => (
     <button key={f.path} onClick={() => setSel(f.path)}
-      className={`w-full flex items-center gap-2 px-3 py-1.5 text-left text-[12px] border-l-2 ${sel === f.path ? "border-schema-accent bg-surface-container-high text-white" : "border-transparent text-neutral-300 hover:bg-surface-container"}`}>
-      <span className={`font-[JetBrains_Mono] w-3 ${STATUS[f.status] ?? ""}`}>{f.status}</span>
+      aria-pressed={sel === f.path}
+      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-[8px] text-left text-[0.8125rem] transition-colors ${sel === f.path ? "bg-[var(--ui-fill-hover)] text-on-surface" : "text-on-surface-variant hover:bg-[var(--ui-fill)]"}`}>
+      <span className={`ui-code w-3 ${STATUS[f.status] ?? ""}`}>{f.status}</span>
       <span className="truncate flex-1" title={f.path}>{f.path.split("/").pop()}</span>
-      <span className="font-[JetBrains_Mono] text-[11px] text-phase-pass">+{f.added}</span>
-      <span className="font-[JetBrains_Mono] text-[11px] text-phase-fail">−{f.deleted}</span>
+      <span className="ui-code text-phase-pass tabular-nums">+{f.added}</span>
+      <span className={`ui-code tabular-nums ${f.deleted ? "text-phase-fail" : "text-on-surface-faint"}`}>−{f.deleted}</span>
     </button>
   );
 
   return (
-    <div className={`flex ${compact ? "h-[520px]" : "h-full"} min-h-0 border border-outline-variant bg-surface`}>
-      <div className="w-[300px] shrink-0 border-r border-outline-variant overflow-y-auto">
-        <div className="px-3 py-2.5 border-b border-outline-variant text-xs text-neutral-200">
-          {data.files.length} files · <span className="text-phase-pass">+{added}</span> <span className="text-phase-fail">−{deleted}</span>
-          <div className="text-[10.5px] text-on-surface-muted font-[JetBrains_Mono] mt-0.5">{data.baseSha.slice(0, 8)}..{data.headSha.slice(0, 8)}</div>
+    <div className={`flex ${compact ? "h-[520px]" : "h-full"} min-h-0`}>
+      <div className="w-[300px] shrink-0 overflow-y-auto px-2 py-3 border-r border-[var(--ui-hairline)]">
+        <div className="px-3 pb-3">
+          <p className="text-[0.875rem] font-medium text-on-surface tabular-nums">
+            {data.files.length} {data.files.length === 1 ? "file" : "files"} <span className="text-phase-pass ml-1.5">+{added}</span> <span className={deleted ? "text-phase-fail" : "text-on-surface-faint"}>−{deleted}</span>
+          </p>
+          <p className="ui-meta ui-code mt-1">{data.baseSha.slice(0, 8)}..{data.headSha.slice(0, 8)}</p>
         </div>
-        <div className="py-1">{authored.map(row)}</div>
+        <div className="space-y-0.5">{authored.map(row)}</div>
         {generated.length > 0 && (
-          <div className="border-t border-outline-variant/60">
-            <button onClick={() => setShowGenerated(!showGenerated)} className="w-full px-3 py-2 text-left text-[11px] text-on-surface-muted hover:text-white">
-              {showGenerated ? "▾" : "▸"} {generated.length} generated / snapshot files
+          <div className="mt-3">
+            <button onClick={() => setShowGenerated(!showGenerated)} aria-expanded={showGenerated} className="w-full flex items-center gap-1.5 px-3 py-2 text-left ui-meta hover:text-on-surface transition-colors">
+              <span className={`material-symbols-outlined text-[16px] transition-transform duration-200 ${showGenerated ? "rotate-90" : ""}`}>chevron_right</span>
+              {generated.length} generated files
             </button>
-            {showGenerated && <div className="pb-1">{generated.map(row)}</div>}
+            {showGenerated && <div className="ui-fade space-y-0.5">{generated.map(row)}</div>}
           </div>
         )}
       </div>
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col bg-surface overflow-hidden">
         {current && (
-          <div className="px-4 py-2.5 border-b border-outline-variant flex items-center gap-3 text-xs">
-            <span className="font-[JetBrains_Mono] text-white truncate">{current.path}</span>
-            <span className="ml-auto font-[JetBrains_Mono] text-phase-pass">+{current.added}</span>
-            <span className="font-[JetBrains_Mono] text-phase-fail">−{current.deleted}</span>
+          <div className="px-5 h-10 shrink-0 flex items-center gap-3 border-b border-[var(--ui-hairline)]">
+            <span className="ui-code text-on-surface-variant truncate">{current.path}</span>
+            <span className="ml-auto ui-code text-phase-pass tabular-nums">+{current.added}</span>
+            <span className={`ui-code tabular-nums ${current.deleted ? "text-phase-fail" : "text-on-surface-faint"}`}>−{current.deleted}</span>
           </div>
         )}
         <div className="flex-1 overflow-auto">
-          {patch === null ? <div className="p-6 text-xs text-on-surface-muted">Loading diff…</div> : patch.trim() ? <Patch patch={patch} /> : <div className="p-6 text-xs text-on-surface-muted">No textual changes (binary or rename only).</div>}
+          {patch === null ? <div className="p-6 ui-meta">Loading the diff</div> : patch.trim() ? <Patch patch={patch} /> : <div className="p-6 ui-meta">No text changes. This file is binary or was only renamed.</div>}
         </div>
       </div>
     </div>

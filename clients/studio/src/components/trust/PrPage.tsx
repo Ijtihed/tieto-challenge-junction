@@ -8,7 +8,8 @@ import { ACT_COLOR, type ActKind } from "./RepoGraph";
 import GraphCanvas from "@/components/canvas/GraphCanvas";
 import { applyCanvasMarks, loadCurated } from "@/lib/curatedGraph";
 import { eventsFor, marksAt } from "./RepoMap";
-import { shortKey } from "./TrustPanel";
+import { shortKey, STATUS_CLS, TierCard, Story, SectionTitle as H, DecisionLog } from "./TrustPanel";
+import ClaudeCrab from "@/components/ClaudeCrab";
 
 interface PageData {
   page: { slug: string; prNumber: number; prUrl: string; branch: string; requirementId: string; baseSha: string; state: string; checkedAt: string; revisions: { receiptId: string; headSha: string; at: string; reason: string }[] };
@@ -17,16 +18,7 @@ interface PageData {
   decisions: Decision[];
 }
 
-const STATUS: Record<string, string> = {
-  verified: "text-phase-pass border-phase-pass/50", partial: "text-phase-applying border-phase-applying/50", heuristic: "text-phase-applying border-phase-applying/50",
-  unverified: "text-on-surface-muted border-outline-variant", contradicted: "text-phase-fail border-phase-fail/50",
-};
-const TIER: Record<string, string> = { light: "text-phase-pass border-phase-pass", focused: "text-phase-applying border-phase-applying", full: "text-phase-fail border-phase-fail" };
 const STEP_ICON: Record<string, string> = { read: "description", search: "search", edit: "edit", command: "terminal", thought: "psychology", note: "sticky_note_2", result: "flag" };
-
-function H({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
-  return <div className="flex items-baseline justify-between mt-6 mb-2"><h3 className="text-[11px] uppercase tracking-[0.14em] text-on-surface-muted">{children}</h3>{right}</div>;
-}
 
 function ago(iso: string): string {
   const s = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000));
@@ -82,100 +74,163 @@ export default function PrPage({ slug }: { slug: string }) {
 
   useEffect(() => { document.title = data ? `PR #${data.page.prNumber} · ${data.receipt.requirement.id} · Schema` : "Schema review"; }, [data]);
 
-  if (error && !data) return <div className="fixed inset-0 bg-surface flex items-center justify-center text-sm text-phase-fail">{error}</div>;
-  if (!data) return <div className="fixed inset-0 bg-surface flex items-center justify-center text-xs text-on-surface-muted">Loading review page…</div>;
+  if (error && !data) {
+    return (
+      <div className="fixed inset-0 bg-surface flex flex-col items-center justify-center text-center px-6">
+        <SchemaLogo className="w-9 h-9 mb-6" />
+        <p className="ui-title">This review did not load</p>
+        <p className="ui-body mt-2 max-w-md">The review server did not return the pull request. It retries every few seconds.</p>
+        <p className="ui-chip ui-chip-fail mt-3">{error}</p>
+      </div>
+    );
+  }
+  if (!data) {
+    return (
+      <div className="fixed inset-0 bg-surface flex flex-col items-center justify-center gap-5" aria-busy="true">
+        <SchemaLogo className="w-9 h-9 schema-skeleton" />
+        <p className="ui-meta">Loading the review</p>
+      </div>
+    );
+  }
 
   const r = data.receipt;
   const run = data.run;
-  const marks = mode === "before"
-    ? marksAt(data.map, [], 0, null, false)
-    : mode === "after" ? marksAt(data.map, events, events.length, r, true) : marksAt(data.map, events, head, r, false);
   const current = mode === "path" ? events[head - 1] : undefined;
 
   const steps = run?.steps.filter((s) => s.kind !== "thought" && s.kind !== "note") ?? [];
   const latestRev = data.page.revisions[data.page.revisions.length - 1]!;
+  const isOpen = data.page.state === "OPEN";
+  const DECIDED: Record<string, string> = { accept: "Accepted", "request-changes": "Changes requested", reject: "Rejected" };
+  const signed = data.signoff ? `${DECIDED[data.signoff.decision] ?? data.signoff.decision} by ${data.signoff.owner}` : null;
 
   return (
-    <div className="fixed inset-0 bg-surface text-white flex flex-col">
-      <header className="h-14 shrink-0 border-b border-outline-variant flex items-center gap-4 px-5">
-        <SchemaLogo className="w-7 h-7" />
-        <div className="min-w-0">
-          <div className="text-sm truncate"><span className="text-on-surface-muted">{data.repo} · </span>PR #{data.page.prNumber} · {r.requirement.title}</div>
-          <div className="text-[11px] text-on-surface-muted font-[JetBrains_Mono]">{data.page.branch} · {r.baseSha.slice(0, 8)}..{r.headSha.slice(0, 8)} · revision {data.page.revisions.length}</div>
-        </div>
-        <span className={`ml-auto text-[11px] px-2 py-0.5 border ${data.page.state === "OPEN" ? "border-phase-pass/60 text-phase-pass" : "border-kind-service/60 text-kind-service"}`}>{data.page.state.toLowerCase()}</span>
-        <span className="flex items-center gap-1.5 text-[11px] text-on-surface-muted"><span className="w-1.5 h-1.5 rounded-full bg-phase-pass animate-pulse" />live · checked {ago(data.page.checkedAt)}</span>
-        <a href={data.page.prUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 border border-outline-variant text-xs hover:border-neutral-400">
-          <span className="material-symbols-outlined text-[16px]">open_in_new</span>View on GitHub
+    <div className="fixed inset-0 bg-surface text-on-surface flex flex-col">
+      <header className="h-12 shrink-0 flex items-center gap-4 px-5 border-b border-[var(--ui-hairline)]">
+        <SchemaLogo className="w-6 h-6 shrink-0" />
+        <h1 className="text-[0.875rem] font-semibold tracking-[-0.015em] truncate min-w-0">{r.requirement.title}</h1>
+        <p className="hidden lg:flex items-center gap-2.5 ui-meta shrink-0 ml-auto" title={`${data.page.branch}, ${r.baseSha.slice(0, 8)}..${r.headSha.slice(0, 8)}, revision ${data.page.revisions.length}`}>
+          <span className={`ui-chip ${isOpen ? "ui-chip-pass ui-chip-live" : ""}`}>{isOpen ? "Open" : data.page.state.charAt(0) + data.page.state.slice(1).toLowerCase()}, checked {ago(data.page.checkedAt)}</span>
+        </p>
+        <a href={data.page.prUrl} target="_blank" rel="noreferrer" className="ui-btn shrink-0 lg:ml-0 ml-auto">
+          PR #{data.page.prNumber} on GitHub
+          <span className="ui-arrow material-symbols-outlined text-[15px] leading-none -mr-0.5" style={{ fontVariationSettings: "'wght' 300" }} aria-hidden="true">arrow_outward</span>
         </a>
       </header>
 
       <div className="flex-1 min-h-0 flex">
-        <main className="flex-1 min-w-0 relative">
-          <GraphCanvas />
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 flex bg-surface-dim/90 backdrop-blur z-10">
-            {([["before", "Before", "history"], ["path", "Agent's path", "route"], ["after", "After", "check_circle"]] as const).map(([id, label, icon]) => (
-              <button key={id} onClick={() => { setMode(id); if (id === "path") { setHead(0); setPlaying(true); } }}
-                className={`flex items-center gap-1.5 px-4 py-2 text-xs border ${mode === id ? "border-schema-accent text-white bg-surface-container-high" : "border-outline-variant text-on-surface-muted hover:text-white"}`}>
-                <span className="material-symbols-outlined text-[16px]">{icon}</span>{label}
+        <main className="flex-1 min-w-0 flex flex-col">
+          <div className="ui-tabs shrink-0 px-5" role="group" aria-label="Which state of the repo to show">
+            {([["before", "Before"], ["path", "Claude's path"], ["after", "After"]] as const).map(([id, label]) => (
+              <button key={id} aria-pressed={mode === id} onClick={() => { setMode(id); if (id === "path") { setHead(0); setPlaying(true); } }}>
+                {label}
               </button>
             ))}
           </div>
-          <div className="absolute left-1/2 -translate-x-1/2 bottom-4 w-[min(720px,92%)] bg-surface-dim/95 backdrop-blur border border-outline-variant px-4 py-3 z-10">
+          <div className="flex-1 min-h-0 relative">
+            <GraphCanvas />
+          </div>
+          <div className="shrink-0 h-12 px-5 flex items-center gap-3 border-t border-[var(--ui-hairline)]">
             {mode === "path" ? (
               <>
-                <div className="flex items-center gap-3">
-                  <button onClick={() => { if (head >= events.length) setHead(0); setPlaying(!playing); }} className="w-8 h-8 flex items-center justify-center border border-outline-variant hover:border-neutral-400">
-                    <span className="material-symbols-outlined text-[18px]">{playing ? "pause" : "play_arrow"}</span>
-                  </button>
-                  <input type="range" min={0} max={events.length} value={head} onChange={(e) => { setPlaying(false); setHead(Number(e.target.value)); }} className="flex-1 accent-white" />
-                  <span className="text-[11px] font-[JetBrains_Mono] text-on-surface-muted w-16 text-right">{head}/{events.length}</span>
-                </div>
-                <div className="mt-2 text-xs font-[JetBrains_Mono] truncate">
-                  {current ? <><span style={{ color: ACT_COLOR[current.kind as ActKind] }}>{current.kind}</span> <span className="text-neutral-200">{current.title}</span></> : <span className="text-on-surface-muted">The agent's route through the repo, step by step.</span>}
-                </div>
+                <button onClick={() => { if (head >= events.length) setHead(0); setPlaying(!playing); }} aria-label={playing ? "Pause" : "Play"} className="ui-icon-btn shrink-0 -ml-1.5">
+                  <span className="material-symbols-outlined text-[20px]">{playing ? "pause" : "play_arrow"}</span>
+                </button>
+                <input type="range" min={0} max={events.length} value={head} aria-label="Step through Claude's path" onChange={(e) => { setPlaying(false); setHead(Number(e.target.value)); }} className="w-[32%] min-w-[140px] accent-white h-1" />
+                <span className="ui-meta tabular-nums shrink-0">{head} of {events.length}</span>
+                <p className="ui-meta truncate min-w-0">
+                  {current
+                    ? <><span className="text-on-surface-variant capitalize">{current.kind}</span> <span className="ui-code">{current.title.replace(new RegExp(`^${current.kind}\\s+`, "i"), "")}</span></>
+                    : "Claude's route through the repo, step by step."}
+                </p>
               </>
             ) : mode === "before" ? (
-              <div className="text-xs text-neutral-300">The repo at {r.baseSha.slice(0, 8)}, before the agent started. {data.map.nodes.length} components in {data.map.groups.length} modules; size is how much each type is used.</div>
+              <p className="ui-meta truncate">The repo at <span className="ui-code">{r.baseSha.slice(0, 8)}</span>, before Claude started: {data.map.nodes.length} components in {data.map.groups.length} modules.</p>
             ) : (
-              <div className="text-xs text-neutral-300">After {r.headSha.slice(0, 8)}: <span className="text-[#fbbf24]">changed</span> ({r.members.length} members), <span className="text-[#f87171]">flagged by review</span>, <span className="text-[#4ade80]">new files</span>. Numbers show changed lines.</div>
+              <p className="ui-meta flex flex-wrap items-center gap-x-3">
+                <span>After <span className="ui-code">{r.headSha.slice(0, 8)}</span></span>
+                <span className="ui-chip ui-chip-info">Changed</span>
+                <span className="ui-chip ui-chip-fail">Flagged</span>
+                <span className="ui-chip ui-chip-pass">New</span>
+              </p>
             )}
           </div>
         </main>
 
-        <aside className="w-[460px] shrink-0 border-l border-outline-variant bg-surface-dim overflow-y-auto px-5 pb-10">
-          <div className={`mt-5 border px-4 py-3 ${TIER[r.risk.tier] ?? ""}`}>
-            <div className="flex items-baseline justify-between"><span className="text-lg">{r.risk.tierLabel}</span><span className="text-[11px] font-[JetBrains_Mono]">risk {r.risk.score}</span></div>
-            <div className="text-xs text-neutral-200 mt-1">Owner reads <b className="text-white">{r.summary.readLines}</b> of <b className="text-white">{r.summary.totalLines}</b> changed lines</div>
-            <div className="text-[11px] text-on-surface-variant mt-1">AI review is advice with evidence. It never approves.</div>
-          </div>
-          <div className="mt-3 text-xs">
+        <aside className="w-[440px] shrink-0 ui-panel overflow-y-auto px-5 pt-5 pb-10" aria-label="Review">
+          <TierCard r={r} />
+          <p className={`mt-3 ui-chip !whitespace-normal ${data.signoff ? "ui-chip-pass" : "ui-chip-warn"}`}>
             {data.signoff
-              ? <span className="text-phase-pass">Signed by {data.signoff.owner}: {data.signoff.decision} · {ago(data.signoff.at)}</span>
-              : <span className="text-phase-applying">Waiting for a named owner to sign off ({r.refusals.length} question{r.refusals.length === 1 ? "" : "s"} to answer)</span>}
-          </div>
+              ? `${signed}, ${ago(data.signoff.at)}`
+              : `Waiting for an owner to sign, ${r.refusals.length} question${r.refusals.length === 1 ? "" : "s"} open`}
+          </p>
 
-          <H>The change explains itself</H>
-          <ol className="list-decimal ml-4 space-y-1 text-xs text-neutral-300 leading-relaxed">{r.story.map((s, i) => <li key={i}>{s}</li>)}</ol>
+          <H>What changed</H>
+          <Story lines={r.story} />
 
           {run && (
             <>
-              <H right={<span className="text-[10px] text-on-surface-faint font-[JetBrains_Mono]">{run.model} · {run.turns ?? "?"} turns</span>}>Decisions the agent made</H>
-              {run.summary && <p className="text-xs text-neutral-300 leading-relaxed mb-2">{run.summary}</p>}
-              {run.decisions.map((d, i) => (
-                <div key={i} className={`border-l-2 pl-3 py-1 mb-2 ${d.confidence === "unsure" ? "border-phase-applying" : "border-outline-variant"}`}>
-                  <div className="text-xs text-white">{d.decision}{d.confidence === "unsure" && <span className="ml-1.5 text-[10px] uppercase text-phase-applying">unsure</span>}</div>
-                  <div className="text-[11px] text-on-surface-variant mt-0.5">{d.why}</div>
+              <H>Claude decided</H>
+              {run.summary && <p className="ui-body py-2">{run.summary}</p>}
+              <div className="ui-divide">
+                {run.decisions.map((d, i) => (
+                  <div key={i} className="py-3">
+                    <p className="text-[0.875rem] leading-snug font-medium text-on-surface">{d.decision}</p>
+                    <p className="ui-meta mt-1 leading-relaxed">{d.confidence === "unsure" && <span className="ui-chip ui-chip-warn mr-2">Unsure</span>}{d.why}</p>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          <H>Left for the owner</H>
+          {r.refusals.length === 0 ? <p className="ui-meta py-2">Nothing.</p> : (
+            <div className="ui-divide">
+              {r.refusals.map((q) => (
+                <div key={q.question} className="py-3">
+                  <p className="text-[0.875rem] leading-snug font-medium text-on-surface">{q.question}</p>
+                  <p className="ui-meta mt-1 leading-relaxed">{q.why}</p>
                 </div>
               ))}
-              <H right={<span className="text-[10px] text-on-surface-faint">click to jump the graph</span>}>Everything it did · {steps.length} steps</H>
-              <div className="border-l border-outline-variant/60 pl-2 space-y-0.5">
+            </div>
+          )}
+
+          <H right={<span className="ui-meta tabular-nums">{r.claims.filter((c) => c.status === "verified").length} of {r.claims.length} verified</span>}>Claims</H>
+          <div className="ui-divide">
+            {r.claims.map((c) => (
+              <div key={c.id} className="py-3">
+                <p className="text-[0.8125rem] leading-relaxed text-on-surface-variant">{c.text}</p>
+                <p className="mt-1 flex items-center gap-2.5 ui-meta">
+                  <span className={`ui-chip capitalize ${STATUS_CLS[c.status]}`}>{c.status}</span>
+                  <span className="truncate">by {c.decidedBy}</span>
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {r.readList.length > 0 && (
+            <>
+              <H>Read these</H>
+              <div className="ui-divide">
+                {r.readList.map((x) => (
+                  <div key={x.key} className="py-3">
+                    <p className="ui-code text-on-surface break-all">{shortKey(x.key)}</p>
+                    <p className="ui-meta mt-1">{x.why.join(", ")}</p>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {run && (
+            <>
+              <H right={<span className="ui-meta tabular-nums">{steps.length}</span>}>Steps</H>
+              <div className="-mx-2 mt-1">
                 {steps.map((s) => {
                   const idx = events.findIndex((e) => e.title === s.title);
                   return (
-                    <button key={s.i} onClick={() => { if (idx >= 0) { setMode("path"); setPlaying(false); setHead(idx + 1); } }} className="w-full flex items-start gap-2 text-left py-0.5 hover:bg-surface-container">
-                      <span className="material-symbols-outlined text-[14px] mt-[1px]" style={{ color: ACT_COLOR[s.kind as ActKind] ?? "#a1a1aa" }}>{STEP_ICON[s.kind] ?? "build"}</span>
-                      <span className="text-[11px] font-[JetBrains_Mono] text-neutral-300 break-all">{s.title}</span>
+                    <button key={s.i} onClick={() => { if (idx >= 0) { setMode("path"); setPlaying(false); setHead(idx + 1); } }} className="w-full flex items-start gap-2.5 text-left px-2 py-1.5 rounded-[8px] hover:bg-[var(--ui-fill)] transition-colors">
+                      <span className="material-symbols-outlined text-[15px] mt-[2px]" style={{ color: ACT_COLOR[s.kind as ActKind] ?? "var(--color-on-surface-muted)", fontVariationSettings: "'wght' 300" }}>{STEP_ICON[s.kind] ?? "build"}</span>
+                      <span className="ui-code text-on-surface-variant break-all leading-relaxed">{s.title}</span>
                     </button>
                   );
                 })}
@@ -183,37 +238,21 @@ export default function PrPage({ slug }: { slug: string }) {
             </>
           )}
 
-          <H>Claims · decided by evidence</H>
-          {r.claims.map((c) => (
-            <div key={c.id} className="flex gap-2 items-start py-1.5 border-b border-outline-variant/40">
-              <span className={`shrink-0 w-[84px] text-center text-[10px] uppercase border px-1 ${STATUS[c.status]}`}>{c.status}</span>
-              <span className="text-xs text-neutral-200 flex-1">{c.text}</span>
-              <span className="text-[10px] font-[JetBrains_Mono] text-on-surface-faint">{c.decidedBy}</span>
-            </div>
-          ))}
+          <H>Revisions</H>
+          <div className="ui-divide">
+            {data.page.revisions.slice().reverse().map((rev) => (
+              <p key={rev.receiptId} className="py-2.5 flex items-baseline gap-2.5 ui-meta">
+                <span className="ui-code text-on-surface-variant">{rev.headSha.slice(0, 8)}</span>
+                <span>{rev.reason}</span>
+                <span className="ml-auto">{ago(rev.at)}</span>
+              </p>
+            ))}
+          </div>
+          <p className="ui-meta ui-code mt-2 break-all">{latestRev.receiptId}, digest {(r as Receipt & { digest?: string }).digest?.slice(0, 12)}</p>
 
-          <H>Refused to decide · for the owner</H>
-          {r.refusals.length === 0 ? <div className="text-[11px] text-on-surface-muted">Nothing refused.</div> : r.refusals.map((q) => (
-            <div key={q.question} className="mb-2"><div className="text-xs text-white">{q.question}</div><div className="text-[11px] text-on-surface-variant">{q.why}</div></div>
-          ))}
-
-          <H>Read these</H>
-          {r.readList.map((x) => <div key={x.key} className="text-[11px] py-0.5"><span className="font-[JetBrains_Mono] text-white">{shortKey(x.key)}</span> <span className="text-phase-applying">{x.why.join(" · ")}</span></div>)}
-
-          <H>Revisions · updates as the PR changes</H>
-          {data.page.revisions.slice().reverse().map((rev, i) => (
-            <div key={rev.receiptId} className="flex items-baseline gap-2 text-[11px] py-0.5">
-              <span className={`font-[JetBrains_Mono] ${i === 0 ? "text-white" : "text-on-surface-muted"}`}>{rev.headSha.slice(0, 8)}</span>
-              <span className="text-on-surface-variant">{rev.reason}</span>
-              <span className="ml-auto text-on-surface-faint">{ago(rev.at)}</span>
-            </div>
-          ))}
-          <div className="text-[10px] text-on-surface-faint mt-1">Latest receipt {latestRev.receiptId} · digest {(r as Receipt & { digest?: string }).digest?.slice(0, 12)}</div>
-
-          <H>Decision log</H>
-          {data.decisions.slice().reverse().slice(0, 20).map((d, i) => (
-            <div key={i} className="text-[10.5px] text-on-surface-variant py-0.5"><span className="text-on-surface-faint font-[JetBrains_Mono]">{d.at.slice(11, 19)}</span> <span className="text-white">{d.actor}</span> {d.action} <span className="text-on-surface-muted">{d.detail}</span></div>
-          ))}
+          <H>Log</H>
+          <DecisionLog rows={data.decisions.slice().reverse().slice(0, 20)} />
+          <p className="ui-rule mt-4 pt-4 ui-meta flex items-center gap-2"><ClaudeCrab size={15} />AI review is advice with evidence. It never approves.</p>
         </aside>
       </div>
     </div>
