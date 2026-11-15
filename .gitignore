@@ -86,3 +86,7 @@ logs/
 *.node
 # but allow the per-platform fixtures + tests:
 !tests/fixtures/**/*.node
+
+# Agent run logs (Claude Code transcripts) stay local
+junction/agent-runs/
+junction/archive/*/agent-runs/

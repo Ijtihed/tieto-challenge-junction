@@ -46,10 +46,10 @@ A named owner signs. The sign-off records what was checked and by whom or what, 
 
 | Layer | Choice | Why |
 |---|---|---|
-| Frontend | Schema Studio (React, react-flow): the repo as a map of ~90 components in 12 modules; the agent's work streams into the plan panel and lights up the map; a live page per PR | A reviewer sees *where* a change lands and what it touches before reading any code. |
+| Frontend | Schema Studio (React, react-flow): the repo as a map of 50 components in 12 modules; the agent's work streams into the plan panel and lights up the map; a live page per PR | A reviewer sees *where* a change lands and what it touches before reading any code. |
 | Backend | Schema MCP server + a Roslyn sidecar for C# (symbol graph, member-level AST diff), git, `dotnet test` | Every claim is decided by a deterministic engine that can be re-run; the model only writes the story and asks questions. |
 | Agent | Claude Code headless in an isolated git worktree, limited tool allow-list, no push/PR/sign rights | The agent can change code but cannot ship it or approve it. |
-| CI | Pluggable provider. Local runner today: build, tests, a CycloneDX SBOM of resolved packages, and a known-vulnerable package scan. CRACI (`SCHEMA_CI=craci`, `runs-on: craci`) adds runner-level egress policy and continuous CVE monitoring | A failing build goes back to the same agent session to fix (at most 2 tries), then the result is evidence on the receipt. Security-area changes cannot be accepted without a green build. |
+| CI | Pluggable provider. CRACI runners by default (`runs-on: craci`, `junction/ci/schema-ci.yml`): build, the tests the change reaches, and a known-vulnerable package scan; CRACI adds runner-level egress policy and continuous CVE monitoring. `SCHEMA_CI=local` runs build, tests, a CycloneDX SBOM and the scan in the agent's worktree | A failing build goes back to the same agent session for one fix-up turn, then the result is evidence on the receipt. Security-area changes cannot be accepted without a green build. |
 | Trackers | Issues arrive through tracker connectors (Linear, Jira over MCP; demo data in this reference) | The requirement ID travels from ticket to commit trailer to receipt to sign-off. |
 
 ### Security

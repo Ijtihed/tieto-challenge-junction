@@ -20,8 +20,8 @@ SCHEMA_TRUST_REPO=~/junction26-messagepack-csharp npm run serve     # MCP server
 cd clients/studio && npm install && SCHEMA_PORT=7475 npx vite --port 5175   # Studio, :5175
 ```
 
-Open http://localhost:5175 and press Open (the path comes from the server). The saved REQ-2234 run, receipt
-and sign-off load without any keys; `trust.receipt` builds a fresh receipt for any of the four sample branches.
+Open http://localhost:5175 and press Open (the path comes from the server). The saved REQ-2234 receipt and
+sign-off load without any keys; `trust.receipt` builds a fresh receipt for any of the four sample branches.
 
 "Fix it with Claude Code" needs more: the `claude` CLI logged in, `gh` logged in, and your own copy of the
 challenge repo as a git remote. CI runs on CRACI through `junction/ci/schema-ci.yml` (copy it to the repo's
