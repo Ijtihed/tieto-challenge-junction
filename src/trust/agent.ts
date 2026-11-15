@@ -137,7 +137,7 @@ export async function startAgentRun(opts: { repo: string; requirementId: string;
   return run;
 }
 
-const MAX_CI_FIXES = Number(process.env.SCHEMA_CI_RETRIES ?? 2);
+const MAX_CI_FIXES = Number(process.env.SCHEMA_CI_RETRIES ?? 1);
 
 /** One Claude Code turn in the run's worktree; resumes the same session when sessionId is set. */
 function claudeTurn(run: AgentRun, prompt: string, model: string | undefined): Promise<{ code: number; finalText: string; stderr: string }> {
@@ -265,7 +265,7 @@ async function pipeline(run: AgentRun, prompt: string, model: string | undefined
       if (result.passed || attempt >= MAX_CI_FIXES || !run.sessionId) break;
       const failing = result.steps.filter((x) => !x.ok).map((x) => `## ${x.name}\n${x.log}`).join("\n\n");
       const fix = await claudeTurn(run, [
-        `CI failed on your commit ${run.headSha!.slice(0, 8)} (${result.provider} runner). Fix the cause, keeping the change minimal and inside the requirement's scope.`,
+        `CI failed on your commit ${run.headSha!.slice(0, 8)} (${result.provider} runner): a build, a test, or the supply-chain scan (a vulnerable package your change introduced). Fix the cause, keeping the change minimal and inside the requirement's scope. For a vulnerable package, move to a patched version or drop the dependency; never suppress the advisory.`,
         "Re-run only the failing build or tests to confirm. Do not commit or push; the harness does that.",
         "End with the same fenced `decisions` JSON block, listing only decisions you made in this fix.",
         "", "Failing steps:", failing.slice(0, 12_000),

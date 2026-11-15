@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTrust } from "@/state/trust";
 import { callTool } from "@/mcp-client";
 import { useStore } from "@/state/store";
@@ -715,7 +716,7 @@ function AgentPrLinks() {
         View Claude's changes
       </button>
     )}
-    {showChanges && run?.runId && (
+    {showChanges && run?.runId && createPortal(
       <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-6" onClick={() => setShowChanges(false)}>
         <div className="w-full max-w-[1400px] h-[88vh] flex flex-col bg-surface" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center px-4 py-2.5 border border-b-0 border-outline-variant text-sm text-white">
@@ -724,7 +725,8 @@ function AgentPrLinks() {
           </div>
           <div className="flex-1 min-h-0"><ChangesView runId={run.runId} /></div>
         </div>
-      </div>
+      </div>,
+      document.body,
     )}
     {run?.ci?.length ? (() => {
       const last = run.ci[run.ci.length - 1]!;

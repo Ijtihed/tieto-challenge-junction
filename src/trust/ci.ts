@@ -1,8 +1,8 @@
 // CI for agent changes. Providers share one result shape so the receipt, the agent's
 // fix-up loop and the UI don't care where the build ran.
-//   local  (default): build + test + SBOM + vulnerable-package scan in the agent's worktree.
-//   craci  (SCHEMA_CI=craci): the PR branch runs `.github/workflows/schema-ci.yml` on CRACI
-//          runners (`runs-on: craci`); results are read back from GitHub check runs.
+//   local  (SCHEMA_CI=local): build + test + SBOM + vulnerable-package scan in the agent's worktree.
+//   craci  (default): `.github/workflows/schema-ci.yml` on main runs the agent commit on a
+//          CRACI runner (`runs-on: craci`); results come back as a workflow artifact.
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -194,41 +194,108 @@ export const localCi: CiProvider = {
   },
 };
 
-/** CRACI: the PR branch runs the schema-ci workflow on CRACI runners; we read the outcome from GitHub. */
+/** Packages flagged by `dotnet list package --vulnerable --format json`. */
+function parseVulnerableJson(text: string): { answered: boolean; vulns: Vulnerability[] } {
+  type Pkg = { id: string; resolvedVersion: string; vulnerabilities?: { severity: string; advisoryurl: string }[] };
+  let doc: { projects?: { frameworks?: { topLevelPackages?: Pkg[]; transitivePackages?: Pkg[] }[] }[] };
+  try { doc = JSON.parse(text); } catch { return { answered: false, vulns: [] }; }
+  if (!Array.isArray(doc.projects)) return { answered: false, vulns: [] };
+  const seen = new Set<string>();
+  const vulns: Vulnerability[] = [];
+  for (const proj of doc.projects) for (const fw of proj.frameworks ?? []) for (const pkg of [...(fw.topLevelPackages ?? []), ...(fw.transitivePackages ?? [])]) {
+    for (const v of pkg.vulnerabilities ?? []) {
+      const k = `${pkg.id}@${pkg.resolvedVersion}#${v.advisoryurl}`;
+      if (!seen.has(k) && seen.add(k)) vulns.push({ package: pkg.id, version: pkg.resolvedVersion, severity: v.severity, advisory: v.advisoryurl });
+    }
+  }
+  return { answered: true, vulns };
+}
+
+const readText = (p: string) => (existsSync(p) ? readFileSync(p, "utf8") : "");
+
+/**
+ * CRACI: schema-ci.yml runs from main on a CRACI runner and checks out the agent commit, building and
+ * testing only what the change reaches. Results come back as the `schema-ci` artifact.
+ */
 export const craciCi: CiProvider = {
   id: "craci",
   name: "CRACI",
   async run(t, onStep) {
     const repo = process.env.SCHEMA_TRUST_PR_REPO ?? "Ijtihed/junction26-messagepack-csharp";
     const t0 = Date.now();
-    // Hand CRACI only the change: the projects and test classes that reach it.
     const affected = await affectedTests(t);
-    await sh(t.worktree, `git push -q ${process.env.SCHEMA_TRUST_PR_REMOTE ?? "copy"} HEAD:refs/heads/${t.branch}`, 120_000);
-    await sh(t.worktree, `gh workflow run schema-ci.yml -R ${repo} --ref ${t.branch} -f projects="${affected.projects.join(" ")}" -f filter="${affected.filter ?? ""}"`, 60_000);
-    onStep({ name: `CRACI dispatched for ${affected.classes.length || "all"} test classes`, ok: true, seconds: 0, log: affected.classes.join("\n") });
+    const projects = affected.projects;
+    const steps: CiStep[] = [];
+    const step = (s: CiStep) => { steps.push(s); onStep(s); return s; };
+    const fail = (name: string, log = ""): CiResult => {
+      step({ name, ok: false, seconds: Math.round((Date.now() - t0) / 1000), log });
+      return { provider: "craci", headSha: t.headSha, at: new Date().toISOString(), passed: false, steps, sbom: null, vulnerabilities: [], egress: { enforced: true, note: "" } };
+    };
+    // The agent commit must be on GitHub for the runner to check it out.
+    const push = await sh(t.worktree, `git push -q ${process.env.SCHEMA_TRUST_PR_REMOTE ?? "copy"} HEAD:refs/heads/${t.branch}`, 120_000);
+    if (push.code !== 0) return fail("CRACI: push of the agent branch failed", tail(push.out, 30));
+    const title = `schema-ci ${t.headSha}`;
+    const dispatchedAt = Date.now() - 5_000;
+    const disp = await sh(t.worktree, `gh workflow run schema-ci.yml -R ${repo} --ref main -f ref=${t.headSha} -f projects="${projects.join(" ")}" -f filter="${affected.filter ?? ""}"`, 60_000);
+    if (disp.code !== 0) return fail("CRACI: workflow dispatch failed", tail(disp.out, 30));
+    step({ name: `CRACI dispatched: ${projects.join(", ")} · ${affected.classes.length || "all"} test classes`, ok: true, seconds: 0, log: affected.classes.join("\n") });
+
+    let run: { databaseId: number; status: string; conclusion: string; url: string } | undefined;
+    let queuedSince = Date.now();
     for (;;) {
-      const r = await sh(t.worktree, `gh run list -R ${repo} --branch ${t.branch} --workflow schema-ci.yml --json databaseId,headSha,status,conclusion,url -L 5`, 60_000);
-      const runs = JSON.parse(r.out || "[]") as { databaseId: number; headSha: string; status: string; conclusion: string; url: string }[];
-      const mine = runs.find((x) => x.headSha === t.headSha);
-      if (mine?.status === "completed") {
-        const ok = mine.conclusion === "success";
-        const log = ok ? "" : tail((await sh(t.worktree, `gh run view ${mine.databaseId} -R ${repo} --log-failed`, 120_000)).out, 120);
-        const s = { name: `CRACI workflow ${mine.conclusion}`, ok, seconds: Math.round((Date.now() - t0) / 1000), log };
-        onStep(s);
-        return { provider: "craci", headSha: t.headSha, at: new Date().toISOString(), passed: ok, steps: [s], sbom: null, vulnerabilities: [], egress: { enforced: true, note: "Egress policy enforced by CRACI runner; SBOM and CVE matches in the CRACI dashboard." }, url: mine.url };
-      }
-      if (Date.now() - t0 > 30 * 60_000) {
-        const s = { name: "CRACI workflow did not finish in 30 min", ok: false, seconds: 1800, log: "" };
-        onStep(s);
-        return { provider: "craci", headSha: t.headSha, at: new Date().toISOString(), passed: false, steps: [s], sbom: null, vulnerabilities: [], egress: { enforced: true, note: "" } };
-      }
+      const r = await sh(t.worktree, `gh run list -R ${repo} --workflow schema-ci.yml --event workflow_dispatch --json databaseId,displayTitle,status,conclusion,url,createdAt -L 20`, 60_000);
+      let runs: { databaseId: number; displayTitle: string; status: string; conclusion: string; url: string; createdAt: string }[] = [];
+      try { runs = JSON.parse(r.out || "[]"); } catch { /* transient gh error; poll again */ }
+      // Same commit can be dispatched more than once; only this dispatch's run counts.
+      run = runs.find((x) => x.displayTitle === title && Date.parse(x.createdAt) >= dispatchedAt);
+      if (run && run.status !== "queued") queuedSince = Date.now();
+      if (run?.status === "completed") break;
+      if (Date.now() - queuedSince > 10 * 60_000) return fail("CRACI: job queued 10 min without a runner (is the CRACI GitHub App connected to this repo?)", run?.url ?? "");
+      if (Date.now() - t0 > 30 * 60_000) return fail("CRACI workflow did not finish in 30 min", run?.url ?? "");
       await new Promise((res) => setTimeout(res, 15_000));
     }
+
+    const dir = join(homedir(), ".cache", "schema-trust", "craci", String(run.databaseId));
+    const dl = await sh(t.worktree, `rm -rf ${dir} && gh run download ${run.databaseId} -R ${repo} -n schema-ci -D ${dir}`, 120_000);
+    if (dl.code !== 0 || !existsSync(dir)) {
+      const log = tail((await sh(t.worktree, `gh run view ${run.databaseId} -R ${repo} --log-failed`, 120_000)).out, 120);
+      return { ...fail(`CRACI workflow ${run.conclusion}; no results artifact`, log), url: run.url };
+    }
+    let passed = true;
+    let vulnerabilities: Vulnerability[] = [];
+    let scanAnswered = true;
+    for (let i = 1; existsSync(join(dir, String(i))); i++) {
+      const d = join(dir, String(i));
+      const p = readText(join(d, "project")).trim();
+      const bc = readText(join(d, "build.code")).trim();
+      step({ name: `build ${p} (CRACI)`, ok: bc === "0", seconds: 0, log: bc === "0" ? "" : tail(readText(join(d, "build.log")), 80) });
+      if (bc !== "0") { passed = false; continue; }
+      const tc = readText(join(d, "test.code")).trim();
+      step({ name: `test ${p} (CRACI)`, ok: tc === "0", seconds: 0, log: tail(readText(join(d, "test.log")), tc === "0" ? 6 : 80) });
+      if (tc !== "0") passed = false;
+      const v = parseVulnerableJson(readText(join(d, "vulnerable.json")));
+      if (!v.answered) scanAnswered = false;
+      vulnerabilities = vulnerabilities.concat(v.vulns);
+    }
+    const base = await baselineVulns(t, projects);
+    for (const v of vulnerabilities) v.preExisting = base.has(`${v.package}@${v.version}#${v.advisory}`);
+    const introduced = vulnerabilities.filter((v) => !v.preExisting);
+    step({
+      name: scanAnswered ? `vulnerable packages (CRACI): ${introduced.length} introduced, ${vulnerabilities.length - introduced.length} pre-existing` : "vulnerable packages (CRACI): scan unavailable (advisory feed did not answer)",
+      ok: introduced.length === 0, seconds: Math.round((Date.now() - t0) / 1000),
+      log: vulnerabilities.map((v) => `${v.preExisting ? "pre-existing" : "INTRODUCED"} ${v.package} ${v.version} ${v.severity} ${v.advisory}`).join("\n"),
+    });
+    return {
+      scanAnswered,
+      provider: "craci", headSha: t.headSha, at: new Date().toISOString(), passed: passed && introduced.length === 0, steps,
+      sbom: null, vulnerabilities, url: run.url,
+      egress: { enforced: true, note: "Job egress went through CRACI's package-aware proxy; the build SBOM and egress log are in the CRACI dashboard for this run." },
+    };
   },
 };
 
 export function ciProvider(): CiProvider {
-  return process.env.SCHEMA_CI === "craci" ? craciCi : localCi;
+  return process.env.SCHEMA_CI === "local" ? localCi : craciCi;
 }
 
 export async function runCi(t: CiTarget, onStep: (s: CiStep) => void): Promise<CiResult> {

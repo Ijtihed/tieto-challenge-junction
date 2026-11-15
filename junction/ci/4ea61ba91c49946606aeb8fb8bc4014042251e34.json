@@ -1,0 +1,69 @@
+{
+  "scanAnswered": true,
+  "provider": "craci",
+  "headSha": "4ea61ba91c49946606aeb8fb8bc4014042251e34",
+  "at": "2026-11-15T00:29:47.780Z",
+  "passed": true,
+  "steps": [
+    {
+      "name": "CRACI dispatched: tests/MessagePack.SourceGenerator.Tests · 1 test classes",
+      "ok": true,
+      "seconds": 0,
+      "log": "MsgPack00xAnalyzerTests"
+    },
+    {
+      "name": "build tests/MessagePack.SourceGenerator.Tests (CRACI)",
+      "ok": true,
+      "seconds": 0,
+      "log": ""
+    },
+    {
+      "name": "test tests/MessagePack.SourceGenerator.Tests (CRACI)",
+      "ok": true,
+      "seconds": 0,
+      "log": "Build succeeded.\n\u001b[39;49m    0 Warning(s)\n\u001b[39;49m    0 Error(s)\n\u001b[39;49m\nTime Elapsed 00:00:07.39\n"
+    },
+    {
+      "name": "vulnerable packages (CRACI): 0 introduced, 4 pre-existing",
+      "ok": true,
+      "seconds": 146,
+      "log": "pre-existing NuGet.Packaging 6.8.0 Critical https://github.com/advisories/GHSA-68w7-72jg-6qpp\npre-existing NuGet.Packaging 6.8.0 Low https://github.com/advisories/GHSA-g4vj-cjjj-v7hg\npre-existing NuGet.Protocol 6.8.0 Low https://github.com/advisories/GHSA-g4vj-cjjj-v7hg\npre-existing System.Formats.Asn1 6.0.0 High https://github.com/advisories/GHSA-447r-wph3-92pm"
+    }
+  ],
+  "sbom": null,
+  "vulnerabilities": [
+    {
+      "package": "NuGet.Packaging",
+      "version": "6.8.0",
+      "severity": "Critical",
+      "advisory": "https://github.com/advisories/GHSA-68w7-72jg-6qpp",
+      "preExisting": true
+    },
+    {
+      "package": "NuGet.Packaging",
+      "version": "6.8.0",
+      "severity": "Low",
+      "advisory": "https://github.com/advisories/GHSA-g4vj-cjjj-v7hg",
+      "preExisting": true
+    },
+    {
+      "package": "NuGet.Protocol",
+      "version": "6.8.0",
+      "severity": "Low",
+      "advisory": "https://github.com/advisories/GHSA-g4vj-cjjj-v7hg",
+      "preExisting": true
+    },
+    {
+      "package": "System.Formats.Asn1",
+      "version": "6.0.0",
+      "severity": "High",
+      "advisory": "https://github.com/advisories/GHSA-447r-wph3-92pm",
+      "preExisting": true
+    }
+  ],
+  "url": "https://github.com/Ijtihed/junction26-messagepack-csharp/actions/runs/43658265981",
+  "egress": {
+    "enforced": true,
+    "note": "Job egress went through CRACI's package-aware proxy; the build SBOM and egress log are in the CRACI dashboard for this run."
+  }
+}

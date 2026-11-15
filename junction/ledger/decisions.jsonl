@@ -1,53 +1,12 @@
-{"at":"2026-11-13T19:49:44.631Z","actor":"human","action":"agent:start","receiptId":"REQ-2283-20261113-194944","detail":"\"Fix issue #2283: the generator and analyzer crash on a closed generic struct from a referenced assembly.\" on agent/req-2283-20261113-194944 from 32258fdb"}
-{"at":"2026-11-13T19:55:34.228Z","actor":"agent","action":"agent:commit","receiptId":"REQ-2283-20261113-194944","detail":"ea38294c: 7 files, 4 decisions (1 unsure)"}
-{"at":"2026-11-13T20:00:30.197Z","actor":"engine","action":"receipt","receiptId":"REQ-2129@083afd99","detail":"score 13 → full; 4/9 claims verified; 2 refusal(s)"}
-{"at":"2026-11-13T20:01:20.937Z","actor":"engine","action":"receipt","receiptId":"REQ-2283@ea38294c","detail":"score 2 → light; 5/10 claims verified; 2 refusal(s)"}
-{"at":"2026-11-13T20:01:36.699Z","actor":"engine","action":"receipt","receiptId":"REQ-2283@ea38294c","detail":"score 1 → light; 5/9 claims verified; 2 refusal(s)"}
-{"at":"2026-11-13T20:01:42.566Z","actor":"engine","action":"pr:open","receiptId":"REQ-2283@ea38294c","detail":"https://github.com/Ijtihed/junction26-messagepack-csharp/pull/1 (head ea38294c)"}
-{"at":"2026-11-13T20:02:16.845Z","actor":"engine","action":"receipt","receiptId":"REQ-2283@ea38294c","detail":"score 1 → light; 5/9 claims verified; 2 refusal(s)"}
-{"at":"2026-11-13T20:03:46.830Z","actor":"human","action":"agent:start","receiptId":"REQ-2283-20261113-200346","detail":"\"Fix issue #2283: Generator and analyzer must not crash on closed generic value types from referenced assemblies\" on agent/req-2283-20261113-200346 from 32258fdb"}
-{"at":"2026-11-13T20:06:48.519Z","actor":"agent","action":"agent:commit","receiptId":"REQ-2283-20261113-200346","detail":"1a8738da: 6 files, 3 decisions (1 unsure)"}
-{"at":"2026-11-13T20:20:56.650Z","actor":"human","action":"agent:start","receiptId":"REQ-2283-20261113-202056","detail":"\"Fix issue #2283: Generator and analyzer must not crash on closed generic value types from referenced assemblies\" on agent/req-2283-20261113-202056 from 32258fdb"}
-{"at":"2026-11-13T20:23:27.457Z","actor":"agent","action":"agent:commit","receiptId":"REQ-2283-20261113-202056","detail":"8bc8e248: 6 files, 3 decisions (1 unsure)"}
-{"at":"2026-11-13T20:23:44.643Z","actor":"engine","action":"receipt","receiptId":"REQ-2283@ea38294c","detail":"score 1 → light; 5/9 claims verified; 2 refusal(s)"}
-{"at":"2026-11-13T20:23:54.316Z","actor":"engine","action":"receipt","receiptId":"REQ-2283@8bc8e248","detail":"score 1 → light; 5/9 claims verified; 2 refusal(s)"}
-{"at":"2026-11-13T20:24:46.935Z","actor":"engine","action":"receipt","receiptId":"REQ-2283@ea38294c","detail":"score 1 → light; 5/9 claims verified; 2 refusal(s)"}
-{"at":"2026-11-13T20:26:06.705Z","actor":"engine","action":"receipt","receiptId":"REQ-2283@ea38294c","detail":"score 1 → light; 5/9 claims verified; 2 refusal(s)"}
-{"at":"2026-11-14T04:15:49.793Z","actor":"human","action":"agent:start","receiptId":"REQ-2283-20261114-041549","detail":"\"Fix issue #2283: Generator and analyzer must not crash on closed generic value types from referenced assemblies\" on agent/req-2283-20261114-041549 from 32258fdb"}
-{"at":"2026-11-14T04:18:30.861Z","actor":"agent","action":"agent:commit","receiptId":"REQ-2283-20261114-041549","detail":"1846ba4b: 6 files, 3 decisions (1 unsure)"}
-{"at":"2026-11-14T04:18:43.254Z","actor":"engine","action":"receipt","receiptId":"REQ-2283@1846ba4b","detail":"score 1 → light; 5/9 claims verified; 3 refusal(s)"}
-{"at":"2026-11-14T04:22:00.723Z","actor":"engine","action":"receipt","receiptId":"REQ-2283@ea38294c","detail":"score 1 → light; 5/9 claims verified; 2 refusal(s)"}
-{"at":"2026-11-14T04:22:49.139Z","actor":"engine","action":"receipt","receiptId":"REQ-2283@ea38294c","detail":"score 1 → light; 5/9 claims verified; 2 refusal(s)"}
-{"at":"2026-11-14T04:30:45.575Z","actor":"engine","action":"receipt","receiptId":"REQ-2283@8bc8e248","detail":"score 1 → light; 5/9 claims verified; 2 refusal(s)"}
-{"at":"2026-11-14T04:30:51.047Z","actor":"engine","action":"pr:open","receiptId":"REQ-2283@8bc8e248","detail":"https://github.com/Ijtihed/junction26-messagepack-csharp/pull/2 · page http://localhost:5175/pr/af725844"}
-{"at":"2026-11-14T04:34:08.427Z","actor":"engine","action":"receipt","receiptId":"REQ-2283@aae32277","detail":"score 1 → light; 5/9 claims verified; 0 refusal(s)"}
-{"at":"2026-11-14T04:34:09.251Z","actor":"engine","action":"pr:re-reviewed","receiptId":"REQ-2283@aae32277","detail":"head aae32277 → Light check"}
-{"at":"2026-11-14T04:42:34.334Z","actor":"engine","action":"receipt","receiptId":"REQ-2283@aae32277","detail":"score 1 → light; 5/9 claims verified; 2 refusal(s)"}
-{"at":"2026-11-14T04:53:25.756Z","actor":"engine","action":"receipt","receiptId":"REQ-2283@ea38294c","detail":"score 1 → light; 5/9 claims verified; 2 refusal(s)"}
-{"at":"2026-11-14T05:43:04.972Z","actor":"engine","action":"receipt","receiptId":"REQ-2283@8bc8e248","detail":"score 1 → light; 5/9 claims verified; 2 refusal(s)"}
-{"at":"2026-11-14T05:43:40.990Z","actor":"engine","action":"receipt","receiptId":"REQ-2283@8bc8e248","detail":"score 1 → light; 5/9 claims verified; 2 refusal(s)"}
-{"at":"2026-11-14T05:44:53.624Z","actor":"human","action":"agent:start","receiptId":"REQ-2283-20261114-054453","detail":"\"Fix issue #2283: Generator and analyzer must not crash on closed generic value types from referenced assemblies\" on agent/req-2283-20261114-054453 from 32258fdb"}
-{"at":"2026-11-14T05:47:12.509Z","actor":"human","action":"agent:start","receiptId":"REQ-2297-20261114-054712","detail":"\"Fix issue #2297: Mark generated code with [ExcludeFromCodeCoverage]\" on agent/req-2297-20261114-054712 from 32258fdb"}
-{"at":"2026-11-14T05:48:13.263Z","actor":"agent","action":"agent:commit","receiptId":"REQ-2283-20261114-054453","detail":"b6ef649d: 8 files, 4 decisions (0 unsure)"}
-{"at":"2026-11-14T05:48:25.728Z","actor":"engine","action":"receipt","receiptId":"REQ-2283@b6ef649d","detail":"score 1 → light; 5/9 claims verified; 1 refusal(s)"}
-{"at":"2026-11-14T05:48:30.720Z","actor":"engine","action":"pr:open","receiptId":"REQ-2283@b6ef649d","detail":"https://github.com/Ijtihed/junction26-messagepack-csharp/pull/3 · page http://localhost:5175/pr/bdced073"}
-{"at":"2026-11-14T05:53:01.038Z","actor":"agent","action":"agent:commit","receiptId":"REQ-2297-20261114-054712","detail":"86d22f20: 235 files, 5 decisions (1 unsure)"}
-{"at":"2026-11-14T05:53:12.257Z","actor":"engine","action":"receipt","receiptId":"REQ-2297@86d22f20","detail":"score 4 → focused; 5/9 claims verified; 4 refusal(s)"}
-{"at":"2026-11-14T05:53:18.063Z","actor":"engine","action":"pr:open","receiptId":"REQ-2297@86d22f20","detail":"https://github.com/Ijtihed/junction26-messagepack-csharp/pull/4 · page http://localhost:5175/pr/7ddeede0"}
-{"at":"2026-11-14T05:59:48.850Z","actor":"human","action":"agent:start","receiptId":"REQ-2234-20261114-055948","detail":"\"Fix MPCS-2234 (#2234): Analyzer diagnostics must still be reported when SuppressSourceGeneration = true\" on agent/req-2234-20261114-055948 from 32258fdb"}
-{"at":"2026-11-14T06:02:13.639Z","actor":"agent","action":"agent:commit","receiptId":"REQ-2234-20261114-055948","detail":"c0050e96: 1 files, 1 decisions (1 unsure)"}
-{"at":"2026-11-14T06:02:24.686Z","actor":"engine","action":"receipt","receiptId":"REQ-2234@c0050e96","detail":"score 0 → light; 4/8 claims verified; 4 refusal(s)"}
-{"at":"2026-11-14T06:02:29.828Z","actor":"engine","action":"pr:open","receiptId":"REQ-2234@c0050e96","detail":"https://github.com/Ijtihed/junction26-messagepack-csharp/pull/5 · page http://localhost:5175/pr/549ce9af"}
-{"at":"2026-11-14T06:02:57.870Z","actor":"human","action":"agent:start","receiptId":"REQ-2129-20261114-060257","detail":"\"Fix MP-2129 (#2129): Allow generating a formatter for a type declared in a referenced assembly\" on agent/req-2129-20261114-060257 from 32258fdb"}
-{"at":"2026-11-14T06:08:16.271Z","actor":"agent","action":"agent:commit","receiptId":"REQ-2129-20261114-060257","detail":"50890835: 11 files, 4 decisions (3 unsure)"}
-{"at":"2026-11-14T06:08:28.386Z","actor":"engine","action":"receipt","receiptId":"REQ-2129@50890835","detail":"score 9 → full; 4/9 claims verified; 9 refusal(s)"}
-{"at":"2026-11-14T06:08:34.070Z","actor":"engine","action":"pr:open","receiptId":"REQ-2129@50890835","detail":"https://github.com/Ijtihed/junction26-messagepack-csharp/pull/6 · page http://localhost:5175/pr/ba173db9"}
-{"at":"2026-11-14T06:14:51.621Z","actor":"human","action":"agent:start","receiptId":"REQ-2297-20261114-061451","detail":"\"Fix MPCS-2297 (#2297): Mark generated code with [ExcludeFromCodeCoverage]\" on agent/req-2297-20261114-061451 from 32258fdb"}
-{"at":"2026-11-14T06:17:05.410Z","actor":"agent","action":"agent:commit","receiptId":"REQ-2297-20261114-061451","detail":"b6b80753: 234 files, 3 decisions"}
-{"at":"2026-11-14T06:17:32.057Z","actor":"ci","action":"ci:passed","receiptId":"REQ-2297-20261114-061451","detail":"local · b6b80753 · all steps green"}
-{"at":"2026-11-14T06:17:44.022Z","actor":"engine","action":"receipt","receiptId":"REQ-2297@b6b80753","detail":"score 4 → focused; 7/11 claims verified; 4 refusal(s)"}
-{"at":"2026-11-14T06:17:49.657Z","actor":"engine","action":"pr:open","receiptId":"REQ-2297@b6b80753","detail":"https://github.com/Ijtihed/junction26-messagepack-csharp/pull/7 · page http://localhost:5175/pr/d74a4093"}
-{"at":"2026-11-14T07:32:12.209Z","actor":"human","action":"agent:start","receiptId":"REQ-2234-20261114-073212","detail":"\"Fix MPCS-2234 (#2234): Analyzer diagnostics must still be reported when SuppressSourceGeneration = true\" on agent/req-2234-20261114-073212 from 32258fdb"}
-{"at":"2026-11-14T07:34:26.511Z","actor":"agent","action":"agent:commit","receiptId":"REQ-2234-20261114-073212","detail":"b48a1b6d: 2 files, 2 decisions"}
-{"at":"2026-11-14T07:40:50.584Z","actor":"engine","action":"receipt","receiptId":"REQ-2234@b48a1b6d","detail":"score 1 → light; 7/10 claims verified; 4 refusal(s)"}
-{"at":"2026-11-14T08:46:19.707Z","actor":"engine","action":"pr:open","receiptId":"REQ-2234@b48a1b6d","detail":"https://github.com/Ijtihed/junction26-messagepack-csharp/pull/8 · page http://localhost:5175/pr/6acf6a64"}
+{"at":"2026-11-14T19:33:38.913Z","actor":"human","action":"agent:start","receiptId":"REQ-2283-20261114-193338","detail":"\"Fix MP-2283 (#2283): Generator and analyzer must not crash on closed generic value types from referenced assemblies\" on agent/req-2283-20261114-193338 from 32258fdb"}
+{"at":"2026-11-14T19:36:57.365Z","actor":"agent","action":"agent:commit","receiptId":"REQ-2283-20261114-193338","detail":"b4fcd4a7: 2 files, 3 decisions"}
+{"at":"2026-11-14T19:37:28.623Z","actor":"ci","action":"ci:passed","receiptId":"REQ-2283-20261114-193338","detail":"local · b4fcd4a7 · all steps green"}
+{"at":"2026-11-14T19:37:28.951Z","actor":"engine","action":"receipt","receiptId":"REQ-2283@b4fcd4a7","detail":"score 1 → light; 7/11 claims verified; 5 refusal(s)"}
+{"at":"2026-11-14T20:14:02.052Z","actor":"engine","action":"pr:open","receiptId":"REQ-2283@b4fcd4a7","detail":"https://github.com/Ijtihed/junction26-messagepack-csharp/pull/9 · page http://localhost:5175/pr/73efb27c"}
+{"at":"2026-11-14T20:14:30.255Z","actor":"engine","action":"run_tests","receiptId":"REQ-2283@b4fcd4a7","detail":"79 passed, 0 failed (exit 0, 13s)"}
+{"at":"2026-11-15T00:25:00.807Z","actor":"human","action":"agent:start","receiptId":"REQ-2234-20261115-002500","detail":"\"Fix MPCS-2234 (#2234): Analyzer diagnostics must still be reported when SuppressSourceGeneration = true\" on agent/req-2234-20261115-002500 from 32258fdb"}
+{"at":"2026-11-15T00:27:21.679Z","actor":"agent","action":"agent:commit","receiptId":"REQ-2234-20261115-002500","detail":"4ea61ba9: 1 files, 2 decisions"}
+{"at":"2026-11-15T00:29:47.780Z","actor":"ci","action":"ci:passed","receiptId":"REQ-2234-20261115-002500","detail":"craci · 4ea61ba9 · all steps green"}
+{"at":"2026-11-15T00:29:48.006Z","actor":"engine","action":"receipt","receiptId":"REQ-2234@4ea61ba9","detail":"score 0 → light; 5/9 claims verified; 4 refusal(s)"}
+{"at":"2026-11-15T00:41:24.478Z","actor":"Ijtihed Kilani","action":"signoff:accept","receiptId":"REQ-2234@4ea61ba9","detail":"Only the analyzer path is covered by tests; other diagnostics were not re-run."}
+{"at":"2026-11-15T00:41:34.110Z","actor":"engine","action":"pr:open","receiptId":"REQ-2234@4ea61ba9","detail":"https://github.com/Ijtihed/junction26-messagepack-csharp/pull/10 · page http://localhost:5175/pr/42c69344"}

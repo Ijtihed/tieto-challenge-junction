@@ -1,0 +1,116 @@
+{
+  "receiptId": "REQ-2234@4ea61ba9",
+  "requirement": "REQ-2234",
+  "headSha": "4ea61ba91c49946606aeb8fb8bc4014042251e34",
+  "at": "2026-11-15T00:41:24.477Z",
+  "owner": "Ijtihed Kilani",
+  "decision": "accept",
+  "tier": "light",
+  "checked": [
+    {
+      "what": "Member-level AST diff of 1 C# files (whitespace/comment-only edits separated)",
+      "by": "roslyn-ast"
+    },
+    {
+      "what": "Call-graph reachability over 9163 symbols / 30344 edges at 4ea61ba9",
+      "by": "schema-graph"
+    },
+    {
+      "what": "Scope against REQ-2234 expected paths",
+      "by": "requirement"
+    },
+    {
+      "what": "Silencing patterns on 0 authored files",
+      "by": "policy"
+    }
+  ],
+  "notChecked": [
+    {
+      "what": "Test execution",
+      "why": "No test run recorded for this commit."
+    },
+    {
+      "what": "Performance",
+      "why": "No benchmark is run; MessagePack has BenchmarkDotNet suites, but not in the review loop."
+    },
+    {
+      "what": "Behaviour in trimmed / NativeAOT apps",
+      "why": "Requires a publish + run outside this engine."
+    },
+    {
+      "what": "Call edges through reflection or generated code not in the repo",
+      "why": "The static graph only sees source; name-resolved edges are marked lower confidence."
+    }
+  ],
+  "refusalAnswers": [
+    {
+      "question": "The agent was unsure: Made no change to TypeCollector or the analyzer. Is that acceptable?",
+      "answer": "Checked the diff and the CRACI test run for this case. OK for this change.",
+      "by": "Ijtihed Kilani"
+    },
+    {
+      "question": "Which diagnostic or scenario does the reporter see missing with SuppressSourceGeneration=true (a repro project or diagnostic ID would settle it)?",
+      "answer": "Checked the diff and the CRACI test run for this case. OK for this change.",
+      "by": "Ijtihed Kilani"
+    },
+    {
+      "question": "Should MsgPack011 (partial type required) be reported for suppressed types?",
+      "answer": "Checked the diff and the CRACI test run for this case. OK for this change.",
+      "by": "Ijtihed Kilani"
+    },
+    {
+      "question": "Duplicate [Key] values crash the analyzer with AD0001 (TypeCollector.cs ~1155, intMembers.Add after reporting); fix separately?",
+      "answer": "Checked the diff and the CRACI test run for this case. OK for this change.",
+      "by": "Ijtihed Kilani"
+    }
+  ],
+  "residualRisk": "Only the analyzer path is covered by tests; other diagnostics were not re-run.",
+  "notes": "",
+  "claims": [
+    {
+      "id": "scope",
+      "status": "verified",
+      "decidedBy": "requirement"
+    },
+    {
+      "id": "public-api",
+      "status": "verified",
+      "decidedBy": "roslyn-ast"
+    },
+    {
+      "id": "tests-reach",
+      "status": "verified",
+      "decidedBy": "schema-graph"
+    },
+    {
+      "id": "adds-tests",
+      "status": "partial",
+      "decidedBy": "roslyn-ast"
+    },
+    {
+      "id": "no-silencing",
+      "status": "verified",
+      "decidedBy": "policy"
+    },
+    {
+      "id": "req-1",
+      "status": "heuristic",
+      "decidedBy": "requirement"
+    },
+    {
+      "id": "req-2",
+      "status": "heuristic",
+      "decidedBy": "requirement"
+    },
+    {
+      "id": "tests-pass",
+      "status": "unverified",
+      "decidedBy": "test-run"
+    },
+    {
+      "id": "ci",
+      "status": "verified",
+      "decidedBy": "test-run"
+    }
+  ]
+}

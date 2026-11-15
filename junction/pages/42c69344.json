@@ -1,0 +1,20 @@
+{
+  "slug": "42c69344",
+  "prNumber": 10,
+  "prUrl": "https://github.com/Ijtihed/junction26-messagepack-csharp/pull/10",
+  "branch": "agent/req-2234-20261115-002500",
+  "repo": "/home/ijtihed/junction26-messagepack-csharp",
+  "requirementId": "REQ-2234",
+  "baseSha": "32258fdbee4bcd653c79f51b4376b5103c6f4d27",
+  "runId": "REQ-2234-20261115-002500",
+  "state": "OPEN",
+  "checkedAt": "2026-11-15T01:23:36.793Z",
+  "revisions": [
+    {
+      "receiptId": "REQ-2234@4ea61ba9",
+      "headSha": "4ea61ba91c49946606aeb8fb8bc4014042251e34",
+      "at": "2026-11-15T00:41:34.110Z",
+      "reason": "agent run"
+    }
+  ]
+}

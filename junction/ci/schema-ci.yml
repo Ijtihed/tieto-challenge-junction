@@ -1,13 +1,15 @@
-# Workflow for SCHEMA_CI=craci. Copy to .github/workflows/schema-ci.yml on the repo once the
-# CRACI GitHub App is installed. Schema dispatches it per agent commit with only the projects and
-# test classes that reach the change (graph-selected), so CI runs a fraction of the suite.
 name: Schema CI
 
+# Dispatched by Schema for each agent commit with only the test projects and classes the change
+# reaches. Runs from main and checks out the agent commit, so agent branches need no CI file.
+run-name: schema-ci ${{ inputs.ref }}
+
 on:
-  pull_request:
-    branches: [main]
   workflow_dispatch:
     inputs:
+      ref:
+        description: "Commit to build and test"
+        required: true
       projects:
         description: "Test projects to build and run (space-separated)"
         default: "tests/MessagePack.SourceGenerator.Tests"
@@ -17,22 +19,40 @@ on:
 
 jobs:
   build-test:
-    runs-on: craci            # CRACI managed runner: build-time SBOM, egress policy, CVE monitoring
+    runs-on: craci
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-dotnet@v4
-        with:
-          global-json-file: global.json
-      - name: Build and test only what the change reaches
-        env:
-          PROJECTS: ${{ inputs.projects || 'tests/MessagePack.SourceGenerator.Tests' }}
-          FILTER: ${{ inputs.filter }}
-        run: |
-          for p in $PROJECTS; do
-            dotnet build "$p" -c Debug
-            if [ -n "$FILTER" ]; then dotnet test "$p" -c Debug --no-build --filter "$FILTER"; else dotnet test "$p" -c Debug --no-build; fi
-            dotnet list "$p" package --vulnerable --include-transitive
-          done
+    - uses: cracicorp/setup@v1
+      with:
+        image: "ubuntu-24.04" # .NET SDK and hosted tool cache for actions/setup-dotnet
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.ref }}
+        fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
+    - uses: ./.github/actions/setup-dotnet
+    - name: Build, test and scan what the change reaches
+      env:
+        PROJECTS: ${{ inputs.projects }}
+        FILTER: ${{ inputs.filter }}
+      run: |
+        mkdir -p schema-ci
+        i=0
+        for p in $PROJECTS; do
+          i=$((i+1)); d="schema-ci/$i"; mkdir -p "$d"; echo "$p" > "$d/project"
+          dotnet build "$p" -c Debug -nologo -v q > "$d/build.log" 2>&1; echo $? > "$d/build.code"
+          if [ "$(cat "$d/build.code")" = "0" ]; then
+            if [ -n "$FILTER" ]; then dotnet test "$p" -c Debug --no-build -nologo -v q --filter "$FILTER" > "$d/test.log" 2>&1; else dotnet test "$p" -c Debug --no-build -nologo -v q > "$d/test.log" 2>&1; fi
+            echo $? > "$d/test.code"
+          fi
+          dotnet list "$p" package --vulnerable --include-transitive --format json > "$d/vulnerable.json" 2> "$d/vulnerable.err"
+          tail -n 40 "$d/build.log" "$d/test.log" 2>/dev/null
+        done
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: schema-ci
+        path: schema-ci/
+        retention-days: 3
+    - name: Fail when a build or test failed
+      run: |
+        ! grep -L '^0$' schema-ci/*/build.code schema-ci/*/test.code 2>/dev/null | grep -q .
