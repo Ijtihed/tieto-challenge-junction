@@ -44,34 +44,17 @@ export default function ClusterBoundary({ data }: { data: BoundaryData }) {
         width: data.width,
         height: data.height,
         opacity: data.dimmed ? 0.4 : 1,
-        filter: data.dimmed ? "saturate(0.2)" : undefined,
         transition: "opacity 400ms cubic-bezier(0.22,1,0.36,1), filter 400ms cubic-bezier(0.22,1,0.36,1)",
       }}
       className="relative pointer-events-none select-none"
     >
-      {/* Outer glow */}
-      <div
-        className="absolute -inset-[1px]"
-        style={{
-          borderRadius: 22,
-          background: `radial-gradient(ellipse at 50% 0%, ${data.color}14 0%, transparent 70%)`,
-        }}
-      />
-      {/* Main boundary frame */}
+      {/* Frame: one hairline and a faint lift. Module identity is the caption, not a colour. */}
       <div
         className="absolute inset-0"
         style={{
-          border: `1px solid ${data.color}2E`,
-          borderRadius: 22,
-          background: `${data.color}08`,
-        }}
-      />
-      {/* Top accent line */}
-      <div
-        className="absolute top-0 left-4 right-4"
-        style={{
-          height: 1,
-          background: `linear-gradient(90deg, transparent, ${data.color}60, transparent)`,
+          border: "1px solid var(--ui-hairline)",
+          borderRadius: 18,
+          background: "rgba(255, 255, 255, 0.018)",
         }}
       />
 
@@ -80,8 +63,8 @@ export default function ClusterBoundary({ data }: { data: BoundaryData }) {
         className="absolute left-1 bottom-full mb-2 flex items-center gap-2 pointer-events-auto whitespace-nowrap"
         style={{ zIndex: 10, transform: `scale(${labelScale})`, transformOrigin: "bottom left", transition: "transform 200ms cubic-bezier(0.22,1,0.36,1)" }}
       >
-        {shape !== "mixed" && <span style={{ color: data.color, fontSize: 11 }}>{shapeIcon}</span>}
-        <span className="text-[13px] font-semibold tracking-tight" style={{ color: data.color }}>
+        {shape !== "mixed" && <span style={{ color: "var(--color-on-surface-muted)", fontSize: 11 }}>{shapeIcon}</span>}
+        <span className="text-[13px] font-semibold tracking-tight" style={{ color: "var(--color-on-surface-variant)" }}>
           {cleanLabel}
         </span>
         {techs.length > 0 && <TechLogoRow techs={techs} size={12} />}
@@ -96,7 +79,7 @@ export default function ClusterBoundary({ data }: { data: BoundaryData }) {
         {stars > 0 && (
           <span
             className="text-[11px] flex gap-px"
-            style={{ color: "#FBBF24" }}
+            style={{ color: "var(--color-on-surface-muted)" }}
             title={`${data.entryPointCount} entry point${(data.entryPointCount ?? 0) > 1 ? "s" : ""}`}
           >
             {Array.from({ length: stars }, (_, i) => (

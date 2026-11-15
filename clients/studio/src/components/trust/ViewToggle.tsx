@@ -11,7 +11,7 @@ export default function ViewToggle() {
     </button>
   );
   return (
-    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 ui-seg !bg-[var(--ui-glass)] backdrop-blur-xl" role="group" aria-label="Canvas view">
+    <div className="absolute top-0 left-5 z-20 ui-tabs !border-0" role="group" aria-label="Canvas view">
       {btn("map", "Repo map", "hub")}
       {btn("evidence", "Test evidence", "account_tree")}
     </div>

@@ -33,7 +33,7 @@ const VIEW_META: Record<string, { title: string; sub: string }> = {
   query: { title: "Query", sub: "Graph queries" },
   wisdom: { title: "Wisdom", sub: "Knowledge base" },
   settings: { title: "Settings", sub: "Preferences" },
-  review: { title: "Issues", sub: "Pick one and hand it to the agent" },
+  review: { title: "Issues", sub: "" },
 };
 
 export default function SidePanel() {
@@ -72,14 +72,12 @@ export default function SidePanel() {
     <aside
       data-testid="side-panel"
       aria-label={meta.title}
-      className="w-[400px] shrink-0 m-3 ml-0 ui-panel flex flex-col"
+      className="w-[400px] shrink-0 ui-panel flex flex-col"
     >
       <div className="px-5 pt-5 pb-3 flex items-start justify-between gap-3">
         <div>
           <h2 className="ui-title">{meta.title}</h2>
-          <p className="ui-meta mt-0.5">
-            {meta.sub}
-          </p>
+          {meta.sub && <p className="ui-meta mt-0.5">{meta.sub}</p>}
         </div>
         <button
           onClick={close}

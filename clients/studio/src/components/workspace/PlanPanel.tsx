@@ -9,6 +9,8 @@ import { fetchApi } from "@/lib/api";
 import type { Step, StepPhase } from "@/lib/types";
 import ChangesView from "@/components/trust/ChangesView";
 import { CHALLENGE_MODE } from "@/lib/challenge";
+import ClaudeCrab from "@/components/ClaudeCrab";
+import { Arrow } from "@/components/trust/ReviewList";
 
 /**
  * Result of GET /api/git/probe. Mirrors the server-side shape but
@@ -221,7 +223,7 @@ export default function PlanPanel() {
 
   if (planPhase === "idle" && planError) {
     return (
-      <aside className="w-[420px] shrink-0 m-3 ml-0 ui-panel flex flex-col">
+      <aside className="w-[420px] shrink-0 ui-panel flex flex-col">
         <div className="px-5 py-4 border-b border-outline-variant">
           <h2 className="text-base text-white">Plan</h2>
           <p className="text-xs text-phase-fail mt-1">Generation failed</p>
@@ -245,9 +247,9 @@ export default function PlanPanel() {
     <aside
       data-testid="plan-panel"
       aria-label="Plan"
-      className="w-[440px] shrink-0 m-3 ml-0 ui-panel flex flex-col"
+      className="w-[440px] shrink-0 ui-panel flex flex-col"
     >
-      {CHALLENGE_MODE ? <AgentRunHeader phase={planPhase} fallback={intent} /> : null}
+      {CHALLENGE_MODE ? <AgentRunHeader phase={planPhase} fallback={intent} onClose={planPhase === "done" ? () => { cancelPlan(); useStore.getState().setSidePanelView("review"); } : undefined} /> : null}
       <div hidden={CHALLENGE_MODE} className="px-5 py-4 border-b border-outline-variant shrink-0">
         <div className="flex items-baseline justify-between gap-3 mb-2">
           <h2 className="text-base text-white">Plan</h2>
@@ -497,7 +499,7 @@ export default function PlanPanel() {
         })()}
       </div>
 
-      <div className="px-4 py-4 border-t border-[var(--ui-hairline)] flex flex-col gap-2 shrink-0">
+      <div className="px-5 py-4 border-t border-[var(--ui-hairline)] flex flex-col gap-2 shrink-0">
         {planPhase === "streaming" && (
           <button
             onClick={() => cancelPlan()}
@@ -718,19 +720,22 @@ function AgentPrLinks() {
   const [showChanges, setShowChanges] = useState(false);
   if (!url && !hasReceipt) return run?.status === "done" ? <p className="text-xs text-on-surface-muted">Building the evidence receipt…</p> : null;
   const ci = run?.ci?.length ? run.ci[run.ci.length - 1]! : null;
+  const link = "inline-flex items-center gap-0.5 text-on-surface-variant hover:text-on-surface transition-colors";
+  const out = <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'wght' 300" }} aria-hidden="true">arrow_outward</span>;
   return (
     <div className="flex flex-col gap-2">
     <button
       onClick={() => useTrust.setState({ open: true, tab: "signoff" })}
       disabled={!hasReceipt}
-      className="ui-btn ui-btn-primary ui-btn-lg w-full"
+      className="ui-btn ui-btn-primary ui-btn-lg w-full !justify-between"
     >
-      Review evidence and sign off
+      Review and sign
+      <Arrow />
     </button>
     <div className="flex gap-2">
       {run?.runId && run.headSha && (
         <button onClick={() => setShowChanges(true)} className="ui-btn flex-1">
-          View changes
+          See the diff
         </button>
       )}
       <button
@@ -742,21 +747,22 @@ function AgentPrLinks() {
       </button>
     </div>
     {tests.text && (
-      <p className={`ui-code px-1 ${tests.phase === "error" || /[1-9]\d* failed/.test(tests.text) ? "text-phase-fail" : "text-phase-pass"}`}>{tests.text}</p>
+      <p className={`ui-chip ${tests.phase === "error" || /[1-9]\d* failed/.test(tests.text) ? "ui-chip-fail" : "ui-chip-pass"}`}>{tests.text}</p>
     )}
     {showChanges && run?.runId && createPortal(
       <div className="fixed inset-0 z-[200] ui-scrim flex items-center justify-center p-6" onClick={() => setShowChanges(false)}>
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Changes by Claude Code"
-          className="w-full max-w-[1400px] h-[88vh] flex flex-col ui-panel ui-sheet !bg-surface-dim"
+          aria-label="Claude's changes"
+          className="w-full max-w-[1400px] h-[88vh] flex flex-col ui-pop ui-sheet overflow-hidden !bg-surface-dim"
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => { if (e.key === "Escape") setShowChanges(false); }}
         >
-          <div className="flex items-center gap-3 pl-6 pr-4 h-14 shrink-0">
-            <h2 className="ui-title">Changes by Claude Code</h2>
-            <span className="ui-chip ui-code">{run.branch ?? run.runId}</span>
+          <div className="flex items-center gap-3 pl-5 pr-3 h-12 shrink-0 border-b border-[var(--ui-hairline)]">
+            <ClaudeCrab />
+            <h2 className="text-[0.875rem] font-semibold tracking-[-0.015em] text-on-surface">Claude's changes</h2>
+            <span className="ui-meta ui-code truncate">{run.branch ?? run.runId}</span>
             <button autoFocus onClick={() => setShowChanges(false)} aria-label="Close changes" className="ui-icon-btn ml-auto">
               <span className="material-symbols-outlined text-[18px]">close</span>
             </button>
@@ -775,30 +781,22 @@ function AgentPrLinks() {
         {busy?.startsWith("Pushing") ? "Opening the pull request" : "Open pull request"}
       </button>
     ) : (
-    <div className="flex items-center gap-1 -mx-1">
-      <a href={url} target="_blank" rel="noreferrer" className="ui-btn ui-btn-quiet">
-        PR #{url!.split("/").pop()}
-        <span className="material-symbols-outlined text-[15px] -mr-0.5" style={{ fontVariationSettings: "'wght' 300" }}>arrow_outward</span>
-      </a>
-      {page && (
-        <a href={page} target="_blank" rel="noreferrer" className="ui-btn ui-btn-quiet">
-          Live review page
-          <span className="material-symbols-outlined text-[15px] -mr-0.5" style={{ fontVariationSettings: "'wght' 300" }}>arrow_outward</span>
-        </a>
-      )}
+    <p className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 ui-meta">
+      <a href={url} target="_blank" rel="noreferrer" className={link}>PR #{url!.split("/").pop()}{out}</a>
+      {page && <a href={page} target="_blank" rel="noreferrer" className={link}>Live page{out}</a>}
       {ci && (
-        <span className={`ui-chip ml-auto mr-1 ${ci.passed ? "ui-chip-pass" : "ui-chip-fail"}`} title={`${ci.provider} on ${ci.headSha.slice(0, 8)}${run!.ci!.length > 1 ? ` · ${run!.ci!.length - 1} automatic fix attempt(s)` : ""}`}>
-          <span className="ui-dot" />CI {ci.passed ? "passed" : "failed"}
+        <span className={`ui-chip ml-auto ${ci.passed ? "ui-chip-pass" : "ui-chip-fail"}`} title={`${ci.provider} on ${ci.headSha.slice(0, 8)}${run!.ci!.length > 1 ? `, ${run!.ci!.length - 1} automatic fix attempt(s)` : ""}`}>
+          CI {ci.passed ? "passed" : "failed"}
         </span>
       )}
-    </div>
+    </p>
     )}
     </div>
   );
 }
 
-/** Challenge-mode panel header: which issue, which agent, where the run stands. */
-function AgentRunHeader({ phase, fallback }: { phase: string; fallback: string }) {
+/** Challenge-mode panel header: the issue first, then one line on where the run stands. */
+function AgentRunHeader({ phase, fallback, onClose }: { phase: string; fallback: string; onClose?: () => void }) {
   const run = useTrust((s) => s.run);
   const reqs = useTrust((s) => s.reqs);
   const [expanded, setExpanded] = useState(false);
@@ -806,22 +804,36 @@ function AgentRunHeader({ phase, fallback }: { phase: string; fallback: string }
   const working = run?.status === "running" || phase === "streaming" || phase === "running";
   const failed = run?.status === "failed";
   const summary = run?.summary ?? (run ? "" : fallback);
+  const secs = run?.durationMs ? Math.round(run.durationMs / 1000) : null;
+  const facts = [
+    run?.requirementId,
+    !working && run?.filesChanged ? `${run.filesChanged.length} ${run.filesChanged.length === 1 ? "file" : "files"}` : null,
+    !working && run?.turns ? `${run.turns} turns` : null,
+    secs === null ? null : secs >= 60 ? `${Math.floor(secs / 60)} min ${secs % 60} s` : `${secs} s`,
+  ].filter(Boolean);
   return (
     <div className="px-5 pt-5 pb-4 shrink-0">
-      <div className="flex items-center gap-2">
-        {run?.requirementId && <span className="ui-code text-on-surface-muted">{run.requirementId}</span>}
-        <span className={`ui-chip ${failed ? "ui-chip-fail" : working ? "ui-chip-info" : "ui-chip-pass"}`}>
-          <span className={`ui-dot ${working ? "animate-pulse" : ""}`} />{failed ? "Failed" : working ? "Working" : "Finished"}
-        </span>
-        <span className="ui-meta ml-auto truncate">{run?.model ?? "Claude Code"}</span>
+      <div className="flex items-start gap-3">
+        <h2 className="ui-title flex-1">{title}</h2>
+        {onClose && (
+          <button onClick={onClose} data-testid="plan-done-close" aria-label="Back to issues" className="ui-icon-btn -mr-1 -mt-1">
+            <span className="material-symbols-outlined text-[18px] leading-none">close</span>
+          </button>
+        )}
       </div>
-      <h2 className="ui-title mt-2.5 leading-snug">{title}</h2>
+      <p className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 ui-meta">
+        <span className="inline-flex items-center gap-1.5 text-on-surface-variant">
+          <ClaudeCrab size={15} walking={working} />
+          {failed ? "Claude failed" : working ? "Claude is working" : "Claude finished"}
+        </span>
+        {facts.map((f) => <span key={f} className="tabular-nums">{f}</span>)}
+      </p>
       {summary && (
         <>
-          <p className={`ui-body mt-2.5 ${expanded ? "" : "line-clamp-4"} ${phase === "streaming" ? "schema-cursor" : ""}`}>{summary}</p>
-          {summary.length > 240 && (
-            <button onClick={() => setExpanded(!expanded)} aria-expanded={expanded} className="mt-1.5 text-xs font-medium text-on-surface hover:text-on-surface-variant transition-colors">
-              {expanded ? "Show less" : "Read the full summary"}
+          <p className={`ui-body mt-3 ${expanded ? "" : "line-clamp-3"} ${phase === "streaming" ? "schema-cursor" : ""}`}>{summary}</p>
+          {summary.length > 200 && (
+            <button onClick={() => setExpanded(!expanded)} aria-expanded={expanded} className="mt-1 text-[0.8125rem] font-medium text-on-surface hover:text-on-surface-variant transition-colors">
+              {expanded ? "Less" : "More"}
             </button>
           )}
         </>
@@ -830,37 +842,20 @@ function AgentRunHeader({ phase, fallback }: { phase: string; fallback: string }
   );
 }
 
-/** What the run touched, decided and left open, straight from the run record. */
+/** What the run left open, decided and touched, straight from the run record. */
 function AgentRunBody() {
   const run = useTrust((s) => s.run);
   if (!run) return null;
-  const secs = run.durationMs ? Math.round(run.durationMs / 1000) : null;
   const files = run.filesChanged ?? [];
-  const facts: [string, string][] = [
-    ["Files changed", String(files.length)],
-    ["Agent turns", run.turns ? String(run.turns) : "n/a"],
-    ["Time", secs === null ? "n/a" : secs >= 60 ? `${Math.floor(secs / 60)} min ${secs % 60} s` : `${secs} s`],
-  ];
-  const heading = "ui-section mt-6 mb-2.5 px-2";
+  const heading = "ui-section ui-rule pt-5 mt-1 mb-1";
   return (
-    <div data-testid="plan-summary" className="px-3 pb-5">
-      <div className="grid grid-cols-3 gap-2">
-        {facts.map(([label, value]) => (
-          <div key={label} className="ui-card px-3.5 py-3">
-            <p className="ui-meta">{label}</p>
-            <p className="mt-1 text-[1.0625rem] font-semibold tracking-[-0.02em] text-on-surface tabular-nums">{value}</p>
-          </div>
-        ))}
-      </div>
-
+    <div data-testid="plan-summary" className="px-5 pb-5">
       {run.openQuestions.length > 0 && (
         <>
-          <h3 className={heading}>Left for you to decide</h3>
-          <ul className="ui-card ui-divide px-4">
+          <h3 className={heading}>Your call</h3>
+          <ul className="ui-divide">
             {run.openQuestions.map((q) => (
-              <li key={q} className="flex gap-3 py-3 text-[0.8125rem] leading-relaxed text-on-surface-variant">
-                <span className="ui-dot text-phase-testing mt-[0.5rem]" />{q}
-              </li>
+              <li key={q} className="py-3 text-[0.8125rem] leading-relaxed text-on-surface-variant">{q}</li>
             ))}
           </ul>
         </>
@@ -868,15 +863,12 @@ function AgentRunBody() {
 
       {run.decisions.length > 0 && (
         <>
-          <h3 className={heading}>Decisions the agent made</h3>
-          <div className="space-y-2">
+          <h3 className={heading}>Claude decided</h3>
+          <div className="ui-divide">
             {run.decisions.map((d, i) => (
-              <div key={i} className="ui-card px-4 py-3.5">
-                <div className="flex items-start gap-2">
-                  <p className="text-[0.8125rem] leading-snug font-medium text-on-surface flex-1">{d.decision}</p>
-                  {d.confidence === "unsure" && <span className="ui-chip ui-chip-warn shrink-0">Unsure</span>}
-                </div>
-                <p className="ui-meta mt-1.5 leading-relaxed">{d.why}</p>
+              <div key={i} className="py-3">
+                <p className="text-[0.8125rem] leading-snug font-medium text-on-surface">{d.decision}</p>
+                <p className="ui-meta mt-1 leading-relaxed">{d.confidence === "unsure" && <span className="ui-chip ui-chip-warn mr-2">Unsure</span>}{d.why}</p>
               </div>
             ))}
           </div>
@@ -885,12 +877,12 @@ function AgentRunBody() {
 
       {files.length > 0 && (
         <>
-          <h3 className={heading}>Files changed</h3>
-          <ul className="ui-card ui-divide px-4">
+          <h3 className={heading}>Files</h3>
+          <ul className="ui-divide">
             {files.map((f) => (
-              <li key={f} className="py-2.5 min-w-0">
-                <p className="ui-code text-on-surface truncate">{f.split("/").pop()}</p>
-                <p className="ui-meta truncate" title={f}>{f.split("/").slice(0, -1).join("/")}</p>
+              <li key={f} className="py-3 min-w-0">
+                <p className="ui-code text-on-surface-variant truncate" title={f}>{f.split("/").pop()}</p>
+                <p className="ui-meta truncate">{f.split("/").slice(0, -1).join("/")}</p>
               </li>
             ))}
           </ul>
@@ -1027,13 +1019,15 @@ function PlanDoneFooter({ onClose }: { onClose: () => void }) {
             {realApply && !canRealUndo ? " (graph only)" : ""}
           </button>
         )}
-        <button
-          onClick={onClose}
-          data-testid="plan-done-close"
-          className="ui-btn ui-btn-quiet flex-1"
-        >
-          {CHALLENGE_MODE ? "Back to issues" : "Close"}
-        </button>
+        {CHALLENGE_MODE ? null : (
+          <button
+            onClick={onClose}
+            data-testid="plan-done-close"
+            className="ui-btn ui-btn-quiet flex-1"
+          >
+            Close
+          </button>
+        )}
       </div>
       {canGitUndo && (prState.kind === "idle" || prState.kind === "err") && (
         <button

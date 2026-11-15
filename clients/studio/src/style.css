@@ -23,48 +23,48 @@
   --color-outline: #34343A;
   --color-outline-variant: #25252A;
 
-  /* Node kinds — slightly desaturated for dark-bg comfort */
-  --color-kind-route: #E5AB20;
-  --color-kind-middleware: #B07CE8;
-  --color-kind-service: #5A9BE6;
-  --color-kind-data: #32C48D;
-  --color-kind-model: #E06BA5;
-  --color-kind-external: #8A97A8;
-  --color-kind-utility: #9A9A9A;
+  /* One accent: the agent. Everything the agent touches or does uses it. */
+  --color-accent: #D97757;
 
-  /* Cluster palette */
-  --color-cluster-0: #D4845A;
-  --color-cluster-1: #5AB8B5;
-  --color-cluster-2: #C86A82;
-  --color-cluster-3: #9A8AC8;
-  --color-cluster-4: #6AAF6E;
-  --color-cluster-5: #B8A45E;
-  --color-cluster-6: #7A92C0;
+  /* Kinds, clusters and edges are neutral. A label says what a node is; colour is kept for state. */
+  --color-kind-route: #B9B9C0;
+  --color-kind-middleware: #A2A2AA;
+  --color-kind-service: #B9B9C0;
+  --color-kind-data: #A2A2AA;
+  --color-kind-model: #B9B9C0;
+  --color-kind-external: #8E8E96;
+  --color-kind-utility: #8E8E96;
 
-  /* Edge relations */
-  --color-edge-imports: #303030;
-  --color-edge-calls: #3D4D5A;
-  --color-edge-registers: #7A6018;
-  --color-edge-applies: #6A4A88;
-  --color-edge-rest: #7A5A18;
-  --color-edge-grpc: #503580;
-  --color-edge-sql: #1A6B50;
-  --color-edge-data-flow: #2A7A82;
-  --color-edge-control: #404850;
+  --color-cluster-0: #B9B9C0;
+  --color-cluster-1: #B9B9C0;
+  --color-cluster-2: #B9B9C0;
+  --color-cluster-3: #B9B9C0;
+  --color-cluster-4: #B9B9C0;
+  --color-cluster-5: #B9B9C0;
+  --color-cluster-6: #B9B9C0;
 
-  /* Plan phases */
-  --color-phase-applying: #6AA8FF;
-  --color-phase-testing: #F0B64C;
-  --color-phase-verifying: #B894F5;
-  --color-phase-pass: #3DD68C;
-  --color-phase-fail: #FF6B62;
+  --color-edge-imports: #2C2C31;
+  --color-edge-calls: #3A3A41;
+  --color-edge-registers: #3A3A41;
+  --color-edge-applies: #3A3A41;
+  --color-edge-rest: #45454D;
+  --color-edge-grpc: #45454D;
+  --color-edge-sql: #45454D;
+  --color-edge-data-flow: #3A3A41;
+  --color-edge-control: #3A3A41;
+
+  /* State colours. Each appears as a small dot or a 1.5px ring next to a word, never as a tinted fill. */
+  --color-phase-applying: #D97757;
+  --color-phase-testing: #D9A84E;
+  --color-phase-verifying: #B9B9C0;
+  --color-phase-pass: #74C69D;
+  --color-phase-fail: #EB5A5F;
   --color-phase-skip: #8E8E96;
 
-  /* Graph overlays */
-  --color-flash-new: #32C48D;
-  --color-focus-pulse: #E5AB20;
-  --color-violation: #E06060;
-  --color-uncovered: #6B6B6B;
+  --color-flash-new: #74C69D;
+  --color-focus-pulse: #D97757;
+  --color-violation: #EB5A5F;
+  --color-uncovered: #6C6C75;
 
   --color-schema-accent: #ffffff;
   --color-schema-muted: #6B6B6B;
@@ -97,10 +97,10 @@
   /* Hairlines and glass are alpha so they sit on any elevation. */
   --ui-hairline: rgba(255, 255, 255, 0.07);
   --ui-hairline-strong: rgba(255, 255, 255, 0.13);
-  --ui-glass: rgba(17, 17, 20, 0.78);
+  --ui-glass: #111114;
   --ui-fill: rgba(255, 255, 255, 0.055);
   --ui-fill-hover: rgba(255, 255, 255, 0.095);
-  --ui-shadow: 0 1px 0 rgba(255, 255, 255, 0.045) inset, 0 28px 64px -28px rgba(0, 0, 0, 0.75), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --ui-shadow: none;
 
   --schema-rf-handle-bg: #2A2A2A;
   --schema-rf-handle-border: #3A3A3A;
@@ -184,13 +184,14 @@
 
   --color-schema-accent: #111111;
   --color-schema-muted: #d4d4d4;
+  --color-accent: #B5532F;
 
   --ui-hairline: rgba(0, 0, 0, 0.08);
   --ui-hairline-strong: rgba(0, 0, 0, 0.16);
-  --ui-glass: rgba(255, 255, 255, 0.82);
+  --ui-glass: #ffffff;
   --ui-fill: rgba(0, 0, 0, 0.045);
   --ui-fill-hover: rgba(0, 0, 0, 0.08);
-  --ui-shadow: 0 24px 56px -28px rgba(0, 0, 0, 0.28), 0 1px 3px rgba(0, 0, 0, 0.08);
+  --ui-shadow: none;
 
   --schema-page-bg: #ffffff;
   --schema-page-fg: #111111;
@@ -302,84 +303,48 @@
     transition:
       border-color 150ms cubic-bezier(0.22, 1, 0.36, 1),
       background-color 150ms cubic-bezier(0.22, 1, 0.36, 1),
-      box-shadow 300ms cubic-bezier(0.22, 1, 0.36, 1),
-      opacity 200ms cubic-bezier(0.22, 1, 0.36, 1),
-      transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
+      opacity 200ms cubic-bezier(0.22, 1, 0.36, 1);
     position: relative;
     overflow: hidden;
     z-index: 5;
-    box-shadow:
-      0 1px 4px rgba(0, 0, 0, 0.28),
-      0 0 0 0 transparent;
-    backdrop-filter: blur(2px);
   }
 
-  .schema-node::before {
-    content: "";
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: 3px;
-    background: var(--node-stripe, transparent);
-    border-radius: 6px 0 0 6px;
-    transition: background 150ms;
-  }
+  /* No coloured side stripe: the kind is a word on the card. */
+  .schema-node::before { content: none; }
 
   .schema-node:hover {
     border-color: var(--schema-node-border-hover);
     background: var(--schema-node-bg-hover);
-    transform: scale(1.02);
-    box-shadow:
-      0 8px 24px rgba(0, 0, 0, 0.36),
-      0 0 0 1px var(--schema-node-border-hover);
   }
 
   .schema-node-selected {
     border-color: var(--color-on-surface) !important;
-    box-shadow:
-      0 0 0 1px var(--color-on-surface),
-      0 4px 16px rgba(0, 0, 0, 0.4);
   }
 
   .schema-node-focus {
     border-color: var(--color-focus-pulse) !important;
-    box-shadow:
-      0 0 0 2px var(--color-focus-pulse),
-      0 0 20px rgba(229, 171, 32, 0.15);
-    animation: schema-pulse 2s ease-in-out infinite;
   }
 
   .schema-node-new {
     border-color: var(--color-flash-new) !important;
-    box-shadow:
-      0 0 0 1px var(--color-flash-new),
-      0 0 16px rgba(50, 196, 141, 0.25);
     animation: schema-fade-in 300ms ease-out;
   }
 
   .schema-node-diff-added {
     border-color: var(--color-flash-new) !important;
-    box-shadow:
-      0 0 0 1px var(--color-flash-new),
-      0 0 12px rgba(50, 196, 141, 0.2);
   }
 
   .schema-node-diff-modified {
-    border-color: var(--color-phase-testing) !important;
-    box-shadow:
-      0 0 0 1px var(--color-phase-testing),
-      0 0 12px rgba(229, 171, 32, 0.15);
+    border-color: var(--color-accent) !important;
   }
 
   .schema-node-violation {
     border-color: var(--color-violation) !important;
-    box-shadow:
-      0 0 0 1px var(--color-violation),
-      0 0 16px rgba(224, 96, 96, 0.2);
   }
 
   .schema-node-pinned {
     position: relative;
-    box-shadow: 0 0 0 1px var(--color-schema-accent);
+    border-color: var(--color-schema-accent);
   }
   .schema-node-pinned::after {
     content: "";
@@ -413,7 +378,6 @@
 
   .schema-node-hover-target {
     border-color: var(--color-on-surface-variant) !important;
-    box-shadow: 0 0 0 1px var(--color-on-surface-variant);
   }
 
   .schema-node-locked::after {
@@ -472,8 +436,8 @@
   }
 
   @keyframes schema-pulse {
-    0%, 100% { box-shadow: 0 0 0 2px var(--color-focus-pulse), 0 0 20px rgba(229, 171, 32, 0.15); }
-    50% { box-shadow: 0 0 0 2px var(--color-focus-pulse), 0 0 28px rgba(229, 171, 32, 0.25); }
+    0%, 100% { border-color: var(--color-focus-pulse); }
+    50% { border-color: color-mix(in srgb, var(--color-focus-pulse) 45%, transparent); }
   }
 
   @keyframes schema-spin {
@@ -505,107 +469,149 @@
 }
 
 /* -----------------------------------------------------------------------
-   Review UI kit. One radius rule: controls 10px, cards 14px, floating
-   panels 20px, pills fully round. One elevation rule: panels are glass
-   over the canvas, cards are a soft fill, never a box inside a box.
+   Review UI kit. Flat and seamless: solid surfaces, hairlines between
+   things, no glass, no pills, no tinted fills. Radius: controls 9px,
+   popovers 12px. One small-text style (.ui-meta) for every caption.
+   Colour: graphite, one accent for the agent, state as a dot plus a word.
    ---------------------------------------------------------------------- */
 @layer components {
+  /* A docked column. It meets the canvas at one hairline. */
   .ui-panel {
-    background: var(--ui-glass);
-    -webkit-backdrop-filter: blur(28px) saturate(160%);
-    backdrop-filter: blur(28px) saturate(160%);
-    border: 1px solid var(--ui-hairline);
-    border-radius: 20px;
-    box-shadow: var(--ui-shadow);
-    overflow: hidden;
-    animation: ui-panel-in 420ms var(--ease-out-soft) both;
+    background: var(--color-surface-dim);
+    border-left: 1px solid var(--ui-hairline);
+    animation: ui-panel-in 320ms var(--ease-out-soft) both;
   }
-  .ui-card {
-    background: var(--ui-fill);
-    border-radius: 14px;
-    transition: background-color 180ms var(--ease-out-soft);
+  /* Popovers, dialogs and toasts. Separated by a thin line, never a shadow. */
+  .ui-pop {
+    background: var(--color-surface-container);
+    border: 1px solid var(--ui-hairline-strong);
+    border-radius: 12px;
   }
-  .ui-card-hover:hover { background: var(--ui-fill-hover); }
   .ui-divide > * + * { border-top: 1px solid var(--ui-hairline); }
+  .ui-rule { border-top: 1px solid var(--ui-hairline); }
+  /* A quiet well for code and quoted evidence. */
+  .ui-well { background: var(--color-surface); border-radius: 9px; }
 
-  .ui-title { font-size: 1.0625rem; line-height: 1.4rem; font-weight: 600; letter-spacing: -0.02em; color: var(--color-on-surface); }
+  .ui-title { font-size: 1.0625rem; line-height: 1.45rem; font-weight: 600; letter-spacing: -0.02em; color: var(--color-on-surface); text-wrap: balance; }
   .ui-display { font-size: 1.75rem; line-height: 2.05rem; font-weight: 600; letter-spacing: -0.032em; color: var(--color-on-surface); }
-  .ui-body { font-size: 0.875rem; line-height: 1.4rem; color: var(--color-on-surface-variant); }
-  .ui-meta { font-size: 0.75rem; line-height: 1.1rem; color: var(--color-on-surface-muted); }
-  /* Section heading: sentence case, no tracked capitals. */
-  .ui-section { font-size: 0.8125rem; line-height: 1.2rem; font-weight: 600; letter-spacing: -0.01em; color: var(--color-on-surface); }
+  .ui-body { font-size: 0.875rem; line-height: 1.45rem; color: var(--color-on-surface-variant); }
+  .ui-section { font-size: 0.875rem; line-height: 1.25rem; font-weight: 600; letter-spacing: -0.012em; color: var(--color-on-surface); }
+  /* Every small text on every screen: one size, one weight, one colour. */
+  .ui-meta { font-size: 0.78125rem; line-height: 1.15rem; font-weight: 400; color: var(--color-on-surface-muted); }
+  .ui-code { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: -0.01em; }
 
   .ui-btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
-    height: 2.25rem; padding: 0 0.95rem; border-radius: 10px;
+    height: 2.25rem; padding: 0 0.9rem; border-radius: 9px;
     font-size: 0.8125rem; font-weight: 500; letter-spacing: -0.01em; white-space: nowrap;
     color: var(--color-on-surface); background: var(--ui-fill);
-    transition: background-color 160ms var(--ease-out-soft), color 160ms var(--ease-out-soft), transform 120ms var(--ease-out-soft), opacity 160ms;
+    transition: background-color 160ms var(--ease-out-soft), color 160ms var(--ease-out-soft), transform 140ms var(--ease-out-soft), opacity 160ms;
     cursor: pointer;
   }
   .ui-btn:hover { background: var(--ui-fill-hover); }
-  .ui-btn:active { transform: scale(0.975); }
+  .ui-btn:active { transform: scale(0.97); }
   .ui-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
   .ui-btn-primary { background: var(--color-on-surface); color: var(--color-surface); font-weight: 600; }
   .ui-btn-primary:hover { background: color-mix(in srgb, var(--color-on-surface) 88%, var(--color-surface)); }
-  .ui-btn-quiet { background: transparent; color: var(--color-on-surface-variant); }
+  .ui-btn-quiet { background: transparent; color: var(--color-on-surface-variant); padding: 0 0.6rem; }
   .ui-btn-quiet:hover { background: var(--ui-fill); color: var(--color-on-surface); }
-  .ui-btn-lg { height: 2.75rem; padding: 0 1.25rem; border-radius: 12px; font-size: 0.9375rem; }
-  .ui-btn-pill { border-radius: 999px; }
+  .ui-btn-lg { height: 2.75rem; padding: 0 1.1rem; font-size: 0.9375rem; }
   .ui-icon-btn {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 2rem; height: 2rem; border-radius: 999px; color: var(--color-on-surface-muted);
-    transition: background-color 160ms var(--ease-out-soft), color 160ms var(--ease-out-soft), transform 120ms var(--ease-out-soft);
+    width: 2rem; height: 2rem; border-radius: 8px; color: var(--color-on-surface-muted);
+    transition: background-color 160ms var(--ease-out-soft), color 160ms var(--ease-out-soft), transform 140ms var(--ease-out-soft);
   }
   .ui-icon-btn:hover { background: var(--ui-fill-hover); color: var(--color-on-surface); }
   .ui-icon-btn:active { transform: scale(0.94); }
 
-  .ui-chip {
-    display: inline-flex; align-items: center; gap: 0.375rem;
-    height: 1.375rem; padding: 0 0.55rem; border-radius: 999px;
-    font-size: 0.6875rem; font-weight: 500; line-height: 1; white-space: nowrap;
-    color: var(--color-on-surface-variant); background: var(--ui-fill);
+  /* The arrow that travels: every forward action ends in one, and it moves when you mean it. */
+  .ui-arrow { display: inline-block; transition: transform 220ms var(--ease-out-soft); }
+  :is(.ui-btn, .ui-action):hover:not(:disabled) .ui-arrow { transform: translateX(3px); }
+
+  /* Action row: the whole line is the button. Used where a card or list item has one thing to do. */
+  .ui-action {
+    display: flex; align-items: center; gap: 0.625rem; width: 100%; min-height: 2.5rem;
+    font-size: 0.8125rem; font-weight: 500; letter-spacing: -0.01em; text-align: left;
+    color: var(--color-on-surface);
+    transition: color 160ms var(--ease-out-soft), transform 140ms var(--ease-out-soft), opacity 160ms;
+    cursor: pointer;
   }
-  .ui-chip-pass { color: var(--color-phase-pass); background: color-mix(in srgb, var(--color-phase-pass) 13%, transparent); }
-  .ui-chip-warn { color: var(--color-phase-testing); background: color-mix(in srgb, var(--color-phase-testing) 13%, transparent); }
-  .ui-chip-fail { color: var(--color-phase-fail); background: color-mix(in srgb, var(--color-phase-fail) 13%, transparent); }
-  .ui-chip-info { color: var(--color-phase-applying); background: color-mix(in srgb, var(--color-phase-applying) 13%, transparent); }
+  .ui-action .ui-arrow { margin-left: auto; color: var(--color-on-surface-faint); transition: transform 220ms var(--ease-out-soft), color 160ms var(--ease-out-soft); }
+  .ui-action:hover:not(:disabled) .ui-arrow { color: var(--color-on-surface); }
+  .ui-action:active:not(:disabled) { transform: scale(0.99); }
+  .ui-action:disabled { opacity: 0.4; cursor: default; }
+
+  /* Status: a dot and a word in the one small-text style. Neutral states have no dot. */
+  .ui-chip {
+    display: inline-flex; align-items: center; gap: 0.375rem; white-space: nowrap;
+    font-size: 0.78125rem; line-height: 1.15rem; font-weight: 400; color: var(--color-on-surface-muted);
+  }
+  :is(.ui-chip-pass, .ui-chip-warn, .ui-chip-fail, .ui-chip-info)::before {
+    content: ""; width: 6px; height: 6px; border-radius: 999px; flex: none; background: var(--chip-dot);
+  }
+  .ui-chip-pass { --chip-dot: var(--color-phase-pass); }
+  .ui-chip-warn { --chip-dot: var(--color-phase-testing); }
+  .ui-chip-fail { --chip-dot: var(--color-phase-fail); }
+  .ui-chip-info { --chip-dot: var(--color-accent); }
+  .ui-chip-live::before { animation: ui-pulse 1.4s ease-in-out infinite; }
 
   .ui-input {
-    width: 100%; border-radius: 10px; padding: 0.6rem 0.8rem;
+    width: 100%; border-radius: 9px; padding: 0.6rem 0.8rem;
     font-size: 0.8125rem; line-height: 1.25rem; color: var(--color-on-surface);
     background: var(--ui-fill); outline: none; border: 1px solid transparent;
     transition: border-color 160ms var(--ease-out-soft), background-color 160ms var(--ease-out-soft);
   }
   .ui-input::placeholder { color: var(--color-on-surface-faint); }
-  .ui-input:focus { border-color: var(--ui-hairline-strong); background: var(--ui-fill-hover); }
+  .ui-input:focus, .ui-input:focus-within { border-color: var(--ui-hairline-strong); }
 
-  /* Segmented control: one sliding choice, like a system tab bar. */
-  .ui-seg { display: inline-flex; padding: 3px; border-radius: 11px; background: var(--ui-fill); gap: 2px; }
+  /* Tabs: words on a line, the chosen one underlined. */
+  .ui-tabs { display: flex; gap: 1.25rem; border-bottom: 1px solid var(--ui-hairline); }
+  .ui-tabs > button {
+    position: relative; height: 2.25rem; font-size: 0.8125rem; font-weight: 500; color: var(--color-on-surface-muted);
+    transition: color 160ms var(--ease-out-soft);
+  }
+  .ui-tabs > button:hover { color: var(--color-on-surface); }
+  .ui-tabs > button::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1.5px; background: var(--color-on-surface);
+    transform: scaleX(0); transform-origin: left; transition: transform 240ms var(--ease-out-soft);
+  }
+  .ui-tabs > button:is([aria-pressed="true"], [aria-selected="true"]) { color: var(--color-on-surface); }
+  .ui-tabs > button:is([aria-pressed="true"], [aria-selected="true"])::after { transform: scaleX(1); }
+
+  /* A choice between a few options: one row, equal cells, the chosen one filled. */
+  .ui-seg { display: flex; padding: 3px; border-radius: 9px; background: var(--ui-fill); gap: 2px; }
   .ui-seg > button {
-    height: 1.75rem; padding: 0 0.8rem; border-radius: 8px; font-size: 0.75rem; font-weight: 500;
+    flex: 1; height: 1.875rem; padding: 0 0.6rem; border-radius: 7px; font-size: 0.8125rem; font-weight: 500;
     color: var(--color-on-surface-muted); white-space: nowrap;
     transition: background-color 180ms var(--ease-out-soft), color 180ms var(--ease-out-soft);
   }
   .ui-seg > button:hover { color: var(--color-on-surface); }
-  .ui-seg > button[aria-pressed="true"], .ui-seg > button[aria-selected="true"] {
-    background: var(--color-surface-container-highest); color: var(--color-on-surface);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  }
+  .ui-seg > button[aria-pressed="true"] { background: var(--color-surface-container-highest); color: var(--color-on-surface); }
 
   .ui-dot { width: 6px; height: 6px; border-radius: 999px; flex: none; background: currentColor; }
-  .ui-code { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: -0.01em; }
 
-  .ui-rise { animation: ui-rise 520ms var(--ease-out-soft) both; animation-delay: calc(var(--i, 0) * 55ms); }
-  .ui-fade { animation: ui-fade 260ms var(--ease-out-soft) both; }
-  .ui-scrim { background: rgba(4, 4, 6, 0.62); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); animation: ui-fade 220ms var(--ease-out-soft) both; }
-  .ui-sheet { animation: ui-sheet-in 380ms var(--ease-out-soft) both; }
+  .ui-rise { animation: ui-rise 420ms var(--ease-out-soft) both; animation-delay: calc(var(--i, 0) * 45ms); }
+  .ui-fade { animation: ui-fade 220ms var(--ease-out-soft) both; }
+  .ui-scrim { background: rgba(4, 4, 6, 0.72); animation: ui-fade 200ms var(--ease-out-soft) both; }
+  .ui-sheet { animation: ui-sheet-in 300ms var(--ease-out-soft) both; }
+
+  /* The Claude Code crab. It hops when its row is hovered and walks while the agent works. */
+  .crab { color: var(--color-accent); flex: none; overflow: visible; }
+  .crab .crab-legs-b { opacity: 0; }
+  :is(.ui-action, .ui-btn):hover:not(:disabled) .crab { animation: crab-hop 420ms var(--ease-out-soft); }
+  .crab-walk { animation: crab-bob 520ms steps(2, jump-none) infinite; }
+  .crab-walk .crab-legs-a { animation: crab-step 520ms steps(1) infinite; }
+  .crab-walk .crab-legs-b { animation: crab-step 520ms steps(1) infinite reverse; opacity: 1; }
 }
 
-@keyframes ui-panel-in { from { opacity: 0; transform: translateX(14px) scale(0.985); } to { opacity: 1; transform: none; } }
-@keyframes ui-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes ui-panel-in { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
+@keyframes ui-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes ui-fade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes ui-sheet-in { from { opacity: 0; transform: translateY(18px) scale(0.985); } to { opacity: 1; transform: none; } }
+@keyframes ui-sheet-in { from { opacity: 0; transform: translateY(10px) scale(0.985); } to { opacity: 1; transform: none; } }
+@keyframes ui-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes crab-hop { 0% { transform: translateY(0); } 40% { transform: translateY(-3px); } 100% { transform: translateY(0); } }
+@keyframes crab-bob { from { transform: translateY(0); } to { transform: translateY(-1px); } }
+@keyframes crab-step { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }
 
 /* The mono utility used across the app follows the mono token. */
 .font-\[JetBrains_Mono\] { font-family: var(--font-mono); letter-spacing: -0.01em; }
@@ -613,13 +619,15 @@
 :focus-visible { outline: 2px solid var(--ui-hairline-strong); outline-offset: 2px; }
 /* Text fields show focus on their container, not as a second ring inside it. */
 input:focus-visible, textarea:focus-visible { outline: none; }
+::selection { background: color-mix(in srgb, var(--color-accent) 45%, transparent); color: var(--color-on-surface); }
+input, textarea { caret-color: var(--color-accent); }
+a { text-underline-offset: 3px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .ui-panel, .ui-rise, .ui-fade, .ui-scrim, .ui-sheet { animation: none; }
-  .ui-btn:active, .ui-icon-btn:active { transform: none; }
-}
-@media (prefers-reduced-transparency: reduce) {
-  .ui-panel { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--color-surface-dim); }
+  .ui-panel, .ui-rise, .ui-fade, .ui-scrim, .ui-sheet, .ui-chip-live::before, .crab, .crab-walk, .crab-walk .crab-legs-a, .crab-walk .crab-legs-b { animation: none !important; }
+  .crab-walk .crab-legs-b { opacity: 0; }
+  .ui-btn:active, .ui-icon-btn:active, .ui-action:active { transform: none; }
+  .ui-arrow { transition: none; }
 }
 
 /* React Flow visual reset + Studio polish */
@@ -639,9 +647,9 @@ input:focus-visible, textarea:focus-visible { outline: none; }
   cursor: pointer;
 }
 .react-flow__edge:hover .react-flow__edge-path {
-  stroke-width: 2.5 !important;
+  stroke-width: 2 !important;
   opacity: 1 !important;
-  filter: brightness(2) drop-shadow(0 0 3px currentColor);
+  stroke: var(--color-on-surface-variant) !important;
 }
 /* Cross-cluster edges are subtler than intra-cluster */
 .react-flow__edge[data-cross-cluster="true"] .react-flow__edge-path {
@@ -689,16 +697,13 @@ input:focus-visible, textarea:focus-visible { outline: none; }
   background: var(--schema-rf-minimap-bg) !important;
   border: 1px solid var(--schema-rf-controls-border) !important;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   overflow: hidden;
 }
 .react-flow__controls {
-  border-radius: 14px !important;
+  border-radius: 10px !important;
   overflow: hidden;
-  box-shadow: var(--ui-shadow) !important;
+  box-shadow: none !important;
   border: 1px solid var(--ui-hairline) !important;
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
 }
 .react-flow__controls-button {
   width: 34px !important;

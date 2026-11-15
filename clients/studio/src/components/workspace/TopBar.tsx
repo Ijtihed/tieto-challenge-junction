@@ -36,7 +36,7 @@ export default function TopBar() {
   }, [drillPath, workingGraph]);
 
   return (
-    <header className={`${CHALLENGE_MODE ? "h-14 bg-surface" : "h-16 border-b border-outline-variant bg-surface-dim"} flex items-center justify-between px-5 shrink-0 relative z-50`}>
+    <header className={`${CHALLENGE_MODE ? "h-12 bg-surface border-b border-[var(--ui-hairline)]" : "h-16 border-b border-outline-variant bg-surface-dim"} flex items-center justify-between px-5 shrink-0 relative z-50`}>
       {/* Left: logo + repo */}
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <Link
@@ -44,7 +44,7 @@ export default function TopBar() {
           className="flex items-center gap-2 hover:opacity-70 transition-opacity shrink-0"
           title="Schema Studio"
         >
-          <SchemaLogo className={CHALLENGE_MODE ? "w-7 h-7" : "w-9 h-9"} />
+          <SchemaLogo className={CHALLENGE_MODE ? "w-6 h-6" : "w-9 h-9"} />
         </Link>
         <span
           hidden={CHALLENGE_MODE && mcpStatus === "connected"}
@@ -63,9 +63,9 @@ export default function TopBar() {
           />
         )}
         {CHALLENGE_MODE ? null : <span className="w-px h-5 bg-outline-variant shrink-0" />}
-        <span className={CHALLENGE_MODE ? "text-[0.9375rem] font-semibold tracking-[-0.02em] text-on-surface truncate" : "text-base text-on-surface-variant truncate"}>{repo.label}</span>
+        <span className={CHALLENGE_MODE ? "text-[0.875rem] font-semibold tracking-[-0.015em] text-on-surface truncate" : "text-base text-on-surface-variant truncate"}>{repo.label}</span>
         {repo.subtitle && (
-          <span className={`${CHALLENGE_MODE ? "text-[0.8125rem] text-on-surface-muted" : "text-xs text-on-surface-faint"} truncate hidden sm:inline`}>{repo.subtitle}</span>
+          <span className={`${CHALLENGE_MODE ? "ui-meta" : "text-xs text-on-surface-faint"} truncate hidden sm:inline`}>{repo.subtitle}</span>
         )}
         {diffProbe?.headBranch && !CHALLENGE_MODE && (
           <BranchPill
@@ -118,9 +118,8 @@ export default function TopBar() {
             data-testid="rail-review"
             aria-pressed={sidePanelView === "review"}
             onClick={() => setSidePanelView(sidePanelView === "review" ? null : "review")}
-            className={`ui-btn ui-btn-pill ${sidePanelView === "review" ? "" : "ui-btn-quiet"}`}
+            className={`ui-btn ${sidePanelView === "review" ? "" : "ui-btn-quiet"}`}
           >
-            <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'wght' 300" }}>inbox</span>
             Issues
           </button>
         ) : null}

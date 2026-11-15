@@ -2,15 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useTrust, type AgentStep, type Claim, type Receipt, type ReviewedMember } from "@/state/trust";
+import ClaudeCrab from "@/components/ClaudeCrab";
+import { Arrow } from "./ReviewList";
 
+// Steps are neutral; only an edit, the one thing that changes code, takes the agent's accent.
 const STEP_ICON: Record<string, [string, string]> = {
-  read: ["description", "text-kind-service"],
-  search: ["search", "text-kind-route"],
-  edit: ["edit", "text-phase-applying"],
-  command: ["terminal", "text-kind-middleware"],
-  thought: ["psychology", "text-on-surface-variant"],
-  note: ["sticky_note_2", "text-on-surface-muted"],
-  result: ["flag", "text-phase-pass"],
+  read: ["description", "text-on-surface-muted"],
+  search: ["search", "text-on-surface-muted"],
+  edit: ["edit", "text-accent"],
+  command: ["terminal", "text-on-surface-muted"],
+  thought: ["psychology", "text-on-surface-faint"],
+  note: ["sticky_note_2", "text-on-surface-faint"],
+  result: ["flag", "text-on-surface-variant"],
 };
 
 export const STATUS_CLS: Record<string, string> = {
@@ -21,11 +24,10 @@ export const STATUS_CLS: Record<string, string> = {
   contradicted: "ui-chip-fail",
 };
 
-// Tier sets one colour: the label, nothing else.
 export const TIER_CLS: Record<string, string> = {
-  light: "text-phase-pass",
-  focused: "text-phase-testing",
-  full: "text-phase-fail",
+  light: "ui-chip-pass",
+  focused: "ui-chip-warn",
+  full: "ui-chip-fail",
 };
 
 export const shortKey = (key: string) => {
@@ -36,9 +38,10 @@ export const shortKey = (key: string) => {
   return noParams.split(".").slice(-2).join(".");
 };
 
-function SectionTitle({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
+/** Section heading: a rule above, more space above than below, nothing beside it but a count. */
+export function SectionTitle({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 mt-7 mb-2.5">
+    <div className="ui-rule flex items-baseline justify-between gap-3 mt-5 pt-5 mb-1">
       <h3 className="ui-section">{children}</h3>
       {right}
     </div>
@@ -47,11 +50,7 @@ function SectionTitle({ children, right }: { children: React.ReactNode; right?: 
 
 function Btn({ children, onClick, disabled, primary }: { children: React.ReactNode; onClick: () => void; disabled?: boolean; primary?: boolean }) {
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`ui-btn ${primary ? "ui-btn-primary" : ""}`}
-    >
+    <button onClick={onClick} disabled={disabled} className={`ui-btn ${primary ? "ui-btn-primary" : ""}`}>
       {children}
     </button>
   );
@@ -59,15 +58,15 @@ function Btn({ children, onClick, disabled, primary }: { children: React.ReactNo
 
 function StepRow({ s }: { s: AgentStep }) {
   const [open, setOpen] = useState(false);
-  const [icon, color] = STEP_ICON[s.kind] ?? ["build", "text-on-surface-variant"];
+  const [icon, color] = STEP_ICON[s.kind] ?? ["build", "text-on-surface-muted"];
   return (
     <div>
       <button onClick={() => s.detail && setOpen(!open)} aria-expanded={s.detail ? open : undefined} className={`w-full flex items-start gap-2.5 text-left px-2 py-1.5 rounded-[8px] ${s.detail ? "cursor-pointer hover:bg-[var(--ui-fill)]" : "cursor-default"}`}>
         <span className={`material-symbols-outlined text-[15px] mt-[2px] ${color}`} style={{ fontVariationSettings: "'wght' 300" }}>{icon}</span>
-        <span className={`${s.kind === "thought" ? "text-[0.8125rem] text-on-surface-muted" : "ui-code text-on-surface-variant"} break-words min-w-0 leading-relaxed`}>{s.title}</span>
+        <span className={`${s.kind === "thought" ? "ui-meta" : "ui-code text-on-surface-variant"} break-words min-w-0 leading-relaxed`}>{s.title}</span>
       </button>
       {open && s.detail && (
-        <pre className="ui-fade ml-8 mt-1 mb-2 p-3 rounded-[10px] bg-[var(--ui-fill)] ui-code text-on-surface-variant whitespace-pre-wrap max-h-56 overflow-auto">{s.detail}</pre>
+        <pre className="ui-fade ui-well ml-8 mt-1 mb-2 p-3 ui-code text-on-surface-variant whitespace-pre-wrap [overflow-wrap:anywhere] max-h-56 overflow-auto">{s.detail}</pre>
       )}
     </div>
   );
@@ -86,67 +85,56 @@ function AgentTab() {
   }, [run?.steps]);
 
   if (!run) {
-    return <div className="ui-body py-8">This change was written by the organisers' agent, so no run transcript is recorded. The receipt has the evidence.</div>;
+    return <p className="ui-body py-6">The organisers' agent wrote this change, so there is no run transcript. The receipt has the evidence.</p>;
   }
   return (
     <div>
-      <div className="grid grid-cols-4 gap-2">
-        {(["read", "search", "edit", "command"] as const).map((k) => (
-          <div key={k} className="ui-card px-3 py-2.5">
-            <p className="text-[1.0625rem] font-semibold tracking-[-0.02em] text-on-surface tabular-nums">{counts[k] ?? 0}</p>
-            <p className="ui-meta capitalize">{k}{k === "search" ? "es" : "s"}</p>
-          </div>
-        ))}
-      </div>
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {[run.model ?? "claude", run.branch, `${run.baseSha.slice(0, 8)}..${run.headSha?.slice(0, 8) ?? "working"}`, run.turns ? `${run.turns} turns` : null].filter(Boolean).map((x) => (
-          <span key={x} className="ui-chip ui-code max-w-full truncate">{x}</span>
-        ))}
-      </div>
+      <p className="ui-meta leading-relaxed tabular-nums">
+        {(["read", "search", "edit", "command"] as const).map((k) => `${counts[k] ?? 0} ${k}${k === "search" ? "es" : "s"}`).join(", ")}
+        {run.turns ? ` in ${run.turns} turns` : ""}
+      </p>
+      <p className="ui-meta ui-code mt-1 break-words">{run.model ?? "claude"} on {run.branch}, {run.baseSha.slice(0, 8)}..{run.headSha?.slice(0, 8) ?? "working"}</p>
 
       {run.status === "running" && (
-        <div className="flex items-center gap-2 mt-4 text-phase-applying">
-          <span className="ui-dot animate-pulse" />
-          <span className="text-[0.8125rem] text-on-surface-variant">{run.steps.length === 0 ? "Claude Code is starting; first output usually takes 15-30 s." : "Agent is working in an isolated worktree. It cannot push, open PRs or sign."}</span>
-        </div>
+        <p className="flex items-center gap-2.5 mt-4 text-[0.8125rem] text-on-surface-variant">
+          <ClaudeCrab walking />
+          {run.steps.length === 0 ? "Starting. First output takes 15 to 30 seconds." : "Working in its own worktree. It cannot push, open PRs or sign."}
+        </p>
       )}
-      {run.status === "failed" && <div className="mt-4 rounded-[12px] px-3.5 py-3 text-[0.8125rem] leading-relaxed text-phase-fail" style={{ background: "color-mix(in srgb, var(--color-phase-fail) 10%, transparent)" }}>{run.error}</div>}
+      {run.status === "failed" && <p className="ui-chip ui-chip-fail mt-4 !whitespace-normal !items-start">{run.error}</p>}
 
       {decisions.length > 0 && (
         <>
-          <SectionTitle>Decisions the agent made</SectionTitle>
-          {run.summary && <p className="ui-body mb-3">{run.summary}</p>}
-          <div className="space-y-2">
+          <SectionTitle>Claude decided</SectionTitle>
+          {run.summary && <p className="ui-body py-2">{run.summary}</p>}
+          <div className="ui-divide">
             {decisions.map((d, i) => (
-              <div key={i} className="ui-card px-4 py-3.5">
-                <div className="flex items-start gap-2">
-                  <p className="text-[0.875rem] leading-snug font-medium text-on-surface flex-1">{d.decision}</p>
-                  {d.confidence === "unsure" && <span className="ui-chip ui-chip-warn shrink-0">Unsure</span>}
-                </div>
-                <p className="ui-body !text-[0.8125rem] mt-1.5">{d.why}</p>
-                {d.alternatives && <p className="ui-meta mt-1.5">Alternatives: {d.alternatives}</p>}
-                {d.evidence && <p className="ui-meta ui-code mt-1.5 break-words">{d.evidence}</p>}
+              <div key={i} className="py-3">
+                <p className="text-[0.875rem] leading-snug font-medium text-on-surface">{d.decision}</p>
+                <p className="ui-meta mt-1 leading-relaxed">{d.confidence === "unsure" && <span className="ui-chip ui-chip-warn mr-2">Unsure</span>}{d.why}</p>
+                {d.alternatives && <p className="ui-meta mt-1 leading-relaxed">Alternative: {d.alternatives}</p>}
+                {d.evidence && <p className="ui-meta ui-code mt-1 break-words">{d.evidence}</p>}
               </div>
             ))}
           </div>
           {run.openQuestions.length > 0 && (
             <>
-              <SectionTitle>Left for a human</SectionTitle>
-              <ul className="space-y-2">{run.openQuestions.map((q) => <li key={q} className="ui-body !text-[0.8125rem] flex gap-2.5"><span className="ui-dot text-phase-testing mt-[0.5rem]" />{q}</li>)}</ul>
+              <SectionTitle>Your call</SectionTitle>
+              <ul className="ui-divide">{run.openQuestions.map((q) => <li key={q} className="py-3 text-[0.8125rem] leading-relaxed text-on-surface-variant">{q}</li>)}</ul>
             </>
           )}
         </>
       )}
 
       {run.status === "done" && (
-        <div className="flex gap-2 mt-5">
-          <Btn primary onClick={() => setTab("receipt")}>Review the receipt</Btn>
-          <Btn onClick={() => void showHead()}>Show the agent's version</Btn>
+        <div className="flex gap-2 mt-4">
+          <Btn primary onClick={() => setTab("receipt")}>Open the receipt</Btn>
+          <Btn onClick={() => void showHead()}>Show on the map</Btn>
         </div>
       )}
 
-      <SectionTitle right={<span className="ui-meta">{run.steps.length} steps</span>}>What it did</SectionTitle>
-      <div className="-mx-2">
+      <SectionTitle right={<span className="ui-meta tabular-nums">{run.steps.length}</span>}>Steps</SectionTitle>
+      <div className="-mx-2 mt-1">
         {run.steps.map((s) => <StepRow key={s.i} s={s} />)}
       </div>
     </div>
@@ -158,21 +146,23 @@ function ClaimRow({ c }: { c: Claim }) {
   const select = useTrust((s) => s.selectMember);
   return (
     <div>
-      <button onClick={() => setOpen(!open)} aria-expanded={open} className="w-full py-3 text-left cursor-pointer group">
-        <span className="flex items-center gap-2">
-          <span className={`ui-chip capitalize ${STATUS_CLS[c.status]}`}>{c.status}</span>
-          <span className="ui-meta ui-code truncate">{c.decidedBy}</span>
-          <span className={`material-symbols-outlined text-[16px] text-on-surface-faint ml-auto transition-transform duration-200 ${open ? "rotate-90" : ""}`}>chevron_right</span>
+      <button onClick={() => setOpen(!open)} aria-expanded={open} className="w-full flex items-start gap-3 py-3 text-left cursor-pointer group">
+        <span className="flex-1 min-w-0">
+          <span className="block text-[0.8125rem] leading-relaxed text-on-surface-variant group-hover:text-on-surface transition-colors">{c.text}</span>
+          <span className="mt-1 flex items-center gap-2.5 ui-meta">
+            <span className={`ui-chip capitalize ${STATUS_CLS[c.status]}`}>{c.status}</span>
+            <span className="truncate">by {c.decidedBy}</span>
+          </span>
         </span>
-        <span className="block mt-1.5 text-[0.8125rem] leading-relaxed text-on-surface-variant group-hover:text-on-surface transition-colors">{c.text}</span>
+        <span className={`material-symbols-outlined text-[16px] mt-1 text-on-surface-faint transition-transform duration-200 ${open ? "rotate-90" : ""}`}>chevron_right</span>
       </button>
       {open && (
         <ul className="ui-fade pb-3 space-y-2">
           {c.evidence.map((e, i) => (
             <li key={i} className="ui-meta leading-relaxed">
               {e.label}
-              {e.ref && <button onClick={() => select(e.ref!)} className="ml-2 ui-code text-phase-applying hover:underline">{shortKey(e.ref)}</button>}
-              {e.detail && <pre className="mt-1.5 p-3 rounded-[10px] bg-[var(--ui-fill)] whitespace-pre-wrap ui-code text-on-surface-variant max-h-40 overflow-auto">{e.detail}</pre>}
+              {e.ref && <button onClick={() => select(e.ref!)} className="ml-2 ui-code text-on-surface-variant underline hover:text-on-surface">{shortKey(e.ref)}</button>}
+              {e.detail && <pre className="ui-well mt-1.5 p-3 whitespace-pre-wrap [overflow-wrap:anywhere] ui-code text-on-surface-variant max-h-40 overflow-auto">{e.detail}</pre>}
             </li>
           ))}
         </ul>
@@ -192,12 +182,12 @@ function MemberDetail({ m }: { m: ReviewedMember }) {
   ];
   const context = lines.filter((l, i) => l.k !== " " || lines.slice(Math.max(0, i - 2), i + 3).some((x) => x.k !== " "));
   return (
-    <div className="ui-fade mt-2 rounded-[14px] bg-surface overflow-hidden">
-      <div className="px-3.5 py-2.5 flex flex-wrap items-center gap-1.5">
-        {m.changes.map((c) => <span key={c} className="ui-chip ui-chip-info">{c}</span>)}
+    <div className="ui-fade ui-well mt-2 mb-3 overflow-hidden">
+      <p className="px-3.5 py-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 ui-meta">
+        {m.changes.map((c) => <span key={c}>{c}</span>)}
         {m.flags.map((f) => <span key={f} className="ui-chip ui-chip-fail">{f.replace("wires-in:", "wires in ")}</span>)}
-        <span className="ui-meta ml-auto">{m.directCallers} callers · {m.tests.length} tests reach</span>
-      </div>
+        <span className="ml-auto tabular-nums">{m.directCallers} callers, {m.tests.length} tests reach it</span>
+      </p>
       <pre className="ui-code leading-[1.6] max-h-72 overflow-auto py-1">
         {context.map((l, i) => (
           <div key={i} className={l.k === "+" ? "bg-phase-pass/10 text-phase-pass" : l.k === "-" ? "bg-phase-fail/10 text-phase-fail" : "text-on-surface-muted"}>
@@ -206,9 +196,9 @@ function MemberDetail({ m }: { m: ReviewedMember }) {
         ))}
       </pre>
       {m.tests[0] && (
-        <div className="px-3.5 py-2.5 ui-meta ui-code break-words">
+        <p className="px-3.5 py-2.5 ui-meta ui-code break-words">
           {m.tests[0].path.filter((p, i) => p !== m.tests[0]!.path[i - 1]).join(" → ")}
-        </div>
+        </p>
       )}
     </div>
   );
@@ -218,20 +208,29 @@ function MemberDetail({ m }: { m: ReviewedMember }) {
 export function TierCard({ r }: { r: Receipt }) {
   const pct = Math.max(1.5, (100 * r.summary.readLines) / Math.max(1, r.summary.totalLines));
   return (
-    <div className="ui-card px-5 py-5">
-      <div className="flex items-center justify-between gap-3">
-        <span className={`ui-meta flex items-center gap-1.5 ${TIER_CLS[r.risk.tier] ?? ""}`}><span className="ui-dot" />{r.risk.tierLabel}</span>
-        <span className="ui-meta ui-code tabular-nums">risk score {r.risk.score}</span>
-      </div>
-      <p className="mt-3 text-[1.75rem] leading-[1.15] font-semibold tracking-[-0.035em] text-on-surface tabular-nums">
+    <div>
+      <p className="text-[1.75rem] leading-[1.15] font-semibold tracking-[-0.035em] text-on-surface tabular-nums">
         Read {r.summary.readLines} of {r.summary.totalLines} lines
       </p>
-      <div className="h-[3px] rounded-full bg-[var(--ui-fill-hover)] mt-4 overflow-hidden" role="img" aria-label={`${r.summary.readLines} of ${r.summary.totalLines} changed lines need an owner's read`}>
+      <div className="h-[3px] rounded-full bg-[var(--ui-fill-hover)] mt-3.5 overflow-hidden" role="img" aria-label={`${r.summary.readLines} of ${r.summary.totalLines} changed lines need an owner's read`}>
         <div className="h-full rounded-full bg-on-surface" style={{ width: `${pct}%` }} />
       </div>
-      <p className="ui-body !text-[0.8125rem] mt-3.5">{r.risk.tierMeaning}</p>
-      {r.risk.trustAdjustments.map((t) => <p key={t} className="ui-meta text-phase-applying mt-1.5">{t}</p>)}
+      <p className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 ui-meta">
+        <span className={`ui-chip ${TIER_CLS[r.risk.tier] ?? ""}`}>{r.risk.tierLabel}</span>
+        <span className="tabular-nums">Risk score {r.risk.score}</span>
+      </p>
+      <p className="ui-body !text-[0.8125rem] mt-2">{r.risk.tierMeaning}</p>
+      {r.risk.trustAdjustments.map((t) => <p key={t} className="ui-meta mt-1.5">{t}</p>)}
     </div>
+  );
+}
+
+/** The change in a few plain sentences, as an ordered list without decoration. */
+export function Story({ lines }: { lines: string[] }) {
+  return (
+    <ol className="ui-divide">
+      {lines.map((s, i) => <li key={i} className="py-2.5 text-[0.8125rem] leading-relaxed text-on-surface-variant">{s}</li>)}
+    </ol>
   );
 }
 
@@ -239,40 +238,34 @@ function ReceiptTab() {
   const r = useTrust((s) => s.receipt);
   const selectedKey = useTrust((s) => s.selectedKey);
   const select = useTrust((s) => s.selectMember);
-  if (!r) return <div className="ui-body py-8">The receipt is built when the agent finishes.</div>;
+  if (!r) return <p className="ui-body py-6">The receipt is built when the agent finishes.</p>;
   const counts: Record<string, number> = {};
-  for (const c of r.claims) counts[c.status] = (counts[c.status] ?? 0) + 1;
+  for (const c of r.claims) counts[c.status] = (c.status in counts ? counts[c.status]! : 0) + 1;
   const sel = r.members.find((m) => m.key === selectedKey);
   return (
     <div>
       <TierCard r={r} />
-      <div className="flex flex-wrap gap-1.5 mt-3">
-        {Object.entries(counts).map(([k, v]) => <span key={k} className={`ui-chip ${STATUS_CLS[k]}`}>{v} {k}</span>)}
-        <span className="ui-chip ui-chip-info">{r.refusals.length} left for the owner</span>
-      </div>
 
-      <SectionTitle>What changed, in order</SectionTitle>
-      <ol className="space-y-2.5">
-        {r.story.map((s, i) => (
-          <li key={i} className="flex gap-3 ui-body !text-[0.8125rem]">
-            <span className="shrink-0 w-5 h-5 mt-px rounded-full bg-[var(--ui-fill)] text-[0.6875rem] font-medium text-on-surface-variant flex items-center justify-center tabular-nums">{i + 1}</span>
-            <span>{s}</span>
-          </li>
-        ))}
-      </ol>
+      <SectionTitle>What changed</SectionTitle>
+      <Story lines={r.story} />
 
       {r.readList.length > 0 && (
         <>
-          <SectionTitle right={<span className="ui-meta">{r.readList.length} to read</span>}>Read these yourself</SectionTitle>
-          <div className="space-y-1.5">
+          <SectionTitle right={<span className="ui-meta tabular-nums">{r.readList.length}</span>}>Read these</SectionTitle>
+          <div className="ui-divide">
             {r.readList.map((x) => (
-              <button key={x.key} onClick={() => select(x.key)} aria-pressed={selectedKey === x.key} className={`ui-card ui-card-hover w-full text-left px-3.5 py-3 ${selectedKey === x.key ? "!bg-[var(--ui-fill-hover)] ring-1 ring-[var(--ui-hairline-strong)]" : ""}`}>
-                <div className="ui-code text-on-surface break-all">{shortKey(x.key)}</div>
-                <div className="ui-meta mt-1">{x.why.join(" · ")}</div>
-              </button>
+              <div key={x.key}>
+                <button onClick={() => select(x.key)} aria-expanded={selectedKey === x.key} className="ui-action !items-start py-3">
+                  <span className="min-w-0">
+                    <span className="block ui-code text-on-surface break-all">{shortKey(x.key)}</span>
+                    <span className="block ui-meta mt-1 font-normal">{x.why.join(", ")}</span>
+                  </span>
+                  <Arrow />
+                </button>
+                {sel && selectedKey === x.key && <MemberDetail m={sel} />}
+              </div>
             ))}
           </div>
-          {sel && <MemberDetail m={sel} />}
         </>
       )}
 
@@ -281,10 +274,10 @@ function ReceiptTab() {
           <SectionTitle>Why this tier</SectionTitle>
           <div className="ui-divide">
             {r.risk.factors.map((f) => (
-              <details key={f.id} className="py-2.5 group">
-                <summary className="flex items-center gap-2.5 text-[0.8125rem] text-on-surface-variant cursor-pointer list-none">
-                  <span className="ui-chip ui-chip-warn ui-code tabular-nums">+{f.points}</span>
+              <details key={f.id} className="py-3 group">
+                <summary className="flex items-center gap-3 text-[0.8125rem] text-on-surface-variant cursor-pointer list-none">
                   <span className="flex-1">{f.label}</span>
+                  <span className="ui-meta tabular-nums">+{f.points}</span>
                   <span className="material-symbols-outlined text-[16px] text-on-surface-faint transition-transform duration-200 group-open:rotate-90">chevron_right</span>
                 </summary>
                 <ul className="mt-2 space-y-1">{f.evidence.map((e, i) => <li key={i} className="ui-meta">{e.label}{e.ref && <span className="ml-1.5 ui-code">{shortKey(e.ref)}</span>}</li>)}</ul>
@@ -294,11 +287,18 @@ function ReceiptTab() {
         </>
       )}
 
-      <SectionTitle right={<span className="ui-meta">decided by evidence</span>}>Claims</SectionTitle>
+      <SectionTitle right={<span className="ui-meta tabular-nums">{counts.verified ?? 0} of {r.claims.length} verified</span>}>Claims</SectionTitle>
       <div className="ui-divide">{r.claims.map((c) => <ClaimRow key={c.id} c={c} />)}</div>
 
       <SectionTitle>Not checked</SectionTitle>
-      <ul className="space-y-2.5">{r.notChecked.filter((n) => !n.why.startsWith("Refused")).map((n) => <li key={n.what} className="ui-meta leading-relaxed"><span className="block text-[0.8125rem] text-on-surface-variant">{n.what}</span>{n.why}</li>)}</ul>
+      <ul className="ui-divide">
+        {r.notChecked.filter((n) => !n.why.startsWith("Refused")).map((n) => (
+          <li key={n.what} className="py-3">
+            <p className="text-[0.8125rem] leading-relaxed text-on-surface-variant">{n.what}</p>
+            <p className="ui-meta mt-1 leading-relaxed">{n.why}</p>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -319,52 +319,49 @@ function SignoffTab() {
   const [notes, setNotes] = useState("");
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   useEffect(() => { setAnswers({}); setChecked({}); setRisk(""); setNotes(""); }, [r?.id]);
-  if (!r) return <div className="ui-body py-8">No receipt yet.</div>;
+  if (!r) return <p className="ui-body py-6">No receipt yet.</p>;
   const open = r.refusals.filter((q) => !answers[q.question]?.trim()).length;
   const canSign = !!owner.trim() && !!risk.trim() && (decision !== "accept" || open === 0);
-  const input = "ui-input";
+  const label = "block text-[0.8125rem] font-medium text-on-surface mb-1.5";
 
   return (
     <div>
-      <div className="ui-card px-4 py-4">
-        {!pr ? (
-          <>
-            <p className="text-[0.875rem] font-medium text-on-surface">No pull request yet</p>
-            <p className="ui-meta mt-1 leading-relaxed">Pushes <span className="ui-code">{r.headSha.slice(0, 8)}</span> to the private copy and opens a PR whose body is this receipt. The AI never approves it.</p>
-            <div className="mt-3"><Btn primary disabled={!!busy} onClick={() => void openPr()}>Open PR with receipt</Btn></div>
-          </>
-        ) : (
-          <>
-            <div className="flex items-center gap-2">
-              <a href={pr.url} target="_blank" rel="noreferrer" className="text-[0.875rem] font-medium text-on-surface hover:underline underline-offset-4">Pull request #{pr.number}</a>
-              <span className="material-symbols-outlined text-[15px] text-on-surface-muted" style={{ fontVariationSettings: "'wght' 300" }}>arrow_outward</span>
-              <button disabled={!!busy} onClick={() => void verifyPr()} className="ui-btn ml-auto">Verify against receipt</button>
-            </div>
-            <p className="ui-meta ui-code mt-1 truncate">{pr.url.replace(/^https?:\/\//, "")}</p>
-            {verify && (
-              <ul className="ui-fade mt-3 space-y-1.5">
-                {verify.checks.map((c) => (
-                  <li key={c.check} className="flex items-start gap-2 text-[0.8125rem]">
-                    <span className={`material-symbols-outlined text-[16px] mt-px ${c.ok ? "text-phase-pass" : "text-phase-fail"}`}>{c.ok ? "check_circle" : "cancel"}</span>
-                    <span className="text-on-surface-variant">{c.check}</span>
-                    <span className="ml-auto ui-meta ui-code text-right">{c.detail}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </>
-        )}
-      </div>
+      {!pr ? (
+        <div>
+          <p className="ui-body !text-[0.8125rem]">No pull request yet. Opening one pushes <span className="ui-code">{r.headSha.slice(0, 8)}</span> with this receipt as its description. The AI never approves it.</p>
+          <div className="mt-3"><Btn primary disabled={!!busy} onClick={() => void openPr()}>Open the pull request</Btn></div>
+        </div>
+      ) : (
+        <div>
+          <div className="flex items-center gap-3">
+            <a href={pr.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[0.875rem] font-medium text-on-surface hover:underline">
+              Pull request #{pr.number}
+              <span className="material-symbols-outlined text-[15px] text-on-surface-muted" style={{ fontVariationSettings: "'wght' 300" }} aria-hidden="true">arrow_outward</span>
+            </a>
+            <button disabled={!!busy} onClick={() => void verifyPr()} className="ui-btn ml-auto">Check against receipt</button>
+          </div>
+          {verify && (
+            <ul className="ui-fade ui-divide mt-2">
+              {verify.checks.map((c) => (
+                <li key={c.check} className="py-2 flex items-baseline gap-3">
+                  <span className={`ui-chip !whitespace-normal ${c.ok ? "ui-chip-pass" : "ui-chip-fail"}`}>{c.check}</span>
+                  <span className="ml-auto ui-meta ui-code text-right">{c.detail}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
-      <SectionTitle right={r.refusals.length ? <span className={`ui-chip tabular-nums ${open ? "ui-chip-warn" : "ui-chip-pass"}`}>{r.refusals.length - open} of {r.refusals.length} answered</span> : undefined}>Questions only you can answer</SectionTitle>
-      {r.refusals.length === 0 && <p className="ui-meta">The review refused nothing.</p>}
-      <div className="space-y-2">
+      <SectionTitle right={r.refusals.length ? <span className="ui-meta tabular-nums">{r.refusals.length - open} of {r.refusals.length} answered</span> : undefined}>Your answers</SectionTitle>
+      {r.refusals.length === 0 && <p className="ui-meta py-2">The review left nothing for you to answer.</p>}
+      <div className="ui-divide">
         {r.refusals.map((q, qi) => (
-          <div key={q.question} className="ui-card px-4 py-4">
+          <div key={q.question} className="py-4">
             <label htmlFor={`refusal-${qi}`} className="block text-[0.875rem] leading-snug font-medium text-on-surface">{q.question}</label>
             <p className="ui-meta mt-1.5 leading-relaxed">{q.why}</p>
-            {q.evidence.slice(0, 2).map((e, i) => e.detail && <pre key={i} className="mt-2.5 p-3 rounded-[10px] bg-surface ui-code text-on-surface-variant whitespace-pre-wrap [overflow-wrap:anywhere] max-h-40 overflow-auto">{e.detail}</pre>)}
-            <textarea id={`refusal-${qi}`} className={`${input} min-h-[60px] mt-3`} placeholder="Your answer" value={answers[q.question] ?? ""} onChange={(e) => setAnswers({ ...answers, [q.question]: e.target.value })} />
+            {q.evidence.slice(0, 2).map((e, i) => e.detail && <pre key={i} className="ui-well mt-2.5 p-3 ui-code text-on-surface-variant whitespace-pre-wrap [overflow-wrap:anywhere] max-h-40 overflow-auto">{e.detail}</pre>)}
+            <textarea id={`refusal-${qi}`} className="ui-input min-h-[60px] mt-3" placeholder="Answer" value={answers[q.question] ?? ""} onChange={(e) => setAnswers({ ...answers, [q.question]: e.target.value })} />
           </div>
         ))}
       </div>
@@ -372,7 +369,7 @@ function SignoffTab() {
       {r.readList.length > 0 && (
         <>
           <SectionTitle>I read these</SectionTitle>
-          <div className="ui-card ui-divide px-4">
+          <div className="ui-divide">
             {r.readList.map((x) => (
               <label key={x.key} className="flex items-center gap-3 py-2.5 cursor-pointer">
                 <input type="checkbox" className="accent-white w-4 h-4" checked={!!checked[x.key]} onChange={(e) => setChecked({ ...checked, [x.key]: e.target.checked })} />
@@ -383,48 +380,55 @@ function SignoffTab() {
         </>
       )}
 
-      <SectionTitle>Your decision</SectionTitle>
-      <div className="space-y-2">
-        <div>
-          <label htmlFor="signoff-risk" className="ui-meta block mb-1.5">Residual risk you accept</label>
-          <textarea id="signoff-risk" className={`${input} min-h-[64px]`} value={risk} onChange={(e) => setRisk(e.target.value)} placeholder="What could still be wrong, and why you accept it" />
-        </div>
-        <div>
-          <label htmlFor="signoff-notes" className="ui-meta block mb-1.5">Notes, optional</label>
-          <textarea id="signoff-notes" className={`${input} min-h-[44px]`} value={notes} onChange={(e) => setNotes(e.target.value)} />
-        </div>
-        <div>
-          <label htmlFor="signoff-owner" className="ui-meta block mb-1.5">Your name</label>
-          <input id="signoff-owner" className={input} value={owner} onChange={(e) => setOwner(e.target.value)} autoComplete="name" />
-        </div>
-        <div className="ui-seg w-full !flex" role="group" aria-label="Decision">
-          {([["accept", "Accept"], ["request-changes", "Request changes"], ["reject", "Reject"]] as const).map(([id, label]) => (
-            <button key={id} type="button" className="flex-1" aria-pressed={decision === id} onClick={() => setDecision(id)}>{label}</button>
+      <SectionTitle>Decision</SectionTitle>
+      <div className="space-y-4 pt-2">
+        <div className="ui-seg" role="group" aria-label="Decision">
+          {([["accept", "Accept"], ["request-changes", "Request changes"], ["reject", "Reject"]] as const).map(([id, text]) => (
+            <button key={id} type="button" aria-pressed={decision === id} onClick={() => setDecision(id)}>{text}</button>
           ))}
         </div>
+        <div>
+          <label htmlFor="signoff-risk" className={label}>Risk you accept</label>
+          <textarea id="signoff-risk" className="ui-input min-h-[64px]" value={risk} onChange={(e) => setRisk(e.target.value)} placeholder="What could still be wrong, and why that is acceptable" />
+        </div>
+        <div>
+          <label htmlFor="signoff-notes" className={label}>Notes</label>
+          <textarea id="signoff-notes" className="ui-input min-h-[44px]" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" />
+        </div>
+        <div>
+          <label htmlFor="signoff-owner" className={label}>Your name</label>
+          <input id="signoff-owner" className="ui-input" value={owner} onChange={(e) => setOwner(e.target.value)} autoComplete="name" />
+        </div>
       </div>
-      {decision === "accept" && open > 0 && <p className="ui-meta text-phase-testing mt-2.5">Answer the {open} remaining question{open === 1 ? "" : "s"} to accept.</p>}
+      {decision === "accept" && open > 0 && <p className="ui-chip ui-chip-warn mt-3">Answer {open} more question{open === 1 ? "" : "s"} to accept</p>}
       <button
-        className="ui-btn ui-btn-primary ui-btn-lg w-full mt-3"
+        className="ui-btn ui-btn-primary ui-btn-lg w-full !justify-between mt-3"
         disabled={!canSign || !!busy}
         onClick={() => void signoff({
           owner, decision, residualRisk: risk, notes, refusalAnswers: answers,
           checkedByOwner: r.readList.filter((x) => checked[x.key]).map((x) => `Read ${shortKey(x.key)} (${x.why.join(", ")})`),
         })}
       >
-        {pr ? "Sign and post to the PR" : "Sign"}
+        Sign
+        <Arrow />
       </button>
 
-      <SectionTitle>Decision log</SectionTitle>
-      <div className="space-y-2 max-h-56 overflow-auto">
-        {log.slice().reverse().map((d, i) => (
-          <div key={i} className="ui-meta leading-relaxed">
-            <span className="ui-code text-on-surface-faint tabular-nums mr-2">{d.at.slice(11, 16)}</span>
-            <span className="text-on-surface-variant">{d.actor}</span> {d.action.replace(/[:_]/g, " ")}
-            <span className="block text-on-surface-faint break-words">{d.detail}</span>
-          </div>
-        ))}
-      </div>
+      <SectionTitle>Log</SectionTitle>
+      <DecisionLog rows={log.slice().reverse()} />
+    </div>
+  );
+}
+
+/** Who did what, newest first. */
+export function DecisionLog({ rows }: { rows: { at: string; actor: string; action: string; detail: string }[] }) {
+  return (
+    <div className="ui-divide max-h-64 overflow-auto">
+      {rows.map((d, i) => (
+        <p key={i} className="py-2.5 ui-meta leading-relaxed">
+          <span className="text-on-surface-variant">{d.actor}</span> {d.action.replace(/[:_]/g, " ")} at <span className="tabular-nums">{d.at.slice(11, 16)}</span>
+          <span className="block break-words">{d.detail}</span>
+        </p>
+      ))}
     </div>
   );
 }
@@ -440,32 +444,32 @@ export default function TrustPanel() {
   const error = useTrust((s) => s.error);
   if (!open) return null;
   const req = receipt?.requirement.id ?? run?.requirementId ?? "";
-  const status = run?.status === "running" ? "Agent running" : receipt ? receipt.risk.tierLabel : run?.status ?? "";
   const TABS = [["agent", "Agent"], ["receipt", "Receipt"], ["signoff", "Sign-off"]] as const;
   return (
-    <aside className="w-[440px] shrink-0 m-3 ml-0 ui-panel flex flex-col" aria-label="Agent PR review">
-      <div className="px-5 pt-5 pb-4">
-        <div className="flex items-center gap-2">
-          <span className="ui-code text-on-surface-muted">{req}</span>
-          {status && <span className={`ui-chip ${run?.status === "running" ? "ui-chip-info" : ""}`}>{status}</span>}
-          <button onClick={close} className="ui-icon-btn ml-auto -mr-1 -my-1" aria-label="Close review">
+    <aside className="w-[440px] shrink-0 ui-panel flex flex-col" aria-label="Agent PR review">
+      <div className="px-5 pt-5">
+        <div className="flex items-start gap-3">
+          <h2 className="ui-title flex-1">{receipt?.requirement.title ?? run?.prompt ?? "Agent PR"}</h2>
+          <button onClick={close} className="ui-icon-btn -mr-1 -mt-1" aria-label="Close review">
             <span className="material-symbols-outlined text-[18px] leading-none">close</span>
           </button>
         </div>
-        <h2 className="ui-title mt-2.5 leading-snug">{receipt?.requirement.title ?? run?.prompt ?? "Agent PR"}</h2>
-        <p className="ui-meta mt-1">The AI reviews with evidence. A named human signs.</p>
-        <div className="ui-seg w-full !flex mt-4" role="tablist" aria-label="Review sections">
-          {TABS.map(([id, label]) => (
-            <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)} className="flex-1">{label}</button>
+        <p className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 ui-meta">
+          <span className="ui-code">{req}</span>
+          {run?.status === "running"
+            ? <span className="inline-flex items-center gap-1.5"><ClaudeCrab size={15} walking />Claude is working</span>
+            : receipt ? <span className={`ui-chip ${TIER_CLS[receipt.risk.tier] ?? ""}`}>{receipt.risk.tierLabel}</span> : null}
+        </p>
+        <div className="ui-tabs mt-3" role="tablist" aria-label="Review sections">
+          {TABS.map(([id, text]) => (
+            <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>{text}</button>
           ))}
         </div>
       </div>
       {(busy || error) && (
-        <div className={`ui-fade mx-5 mb-2 px-3.5 py-2.5 rounded-[10px] text-[0.8125rem] leading-snug flex items-center gap-2 ${error ? "text-phase-fail" : "text-phase-applying"}`} style={{ background: `color-mix(in srgb, var(${error ? "--color-phase-fail" : "--color-phase-applying"}) 10%, transparent)` }} role="status">
-          {busy && !error && <span className="ui-dot animate-pulse" />}{error ?? busy}
-        </div>
+        <p className={`ui-fade ui-rule mx-5 py-2.5 ui-chip !whitespace-normal ${error ? "ui-chip-fail" : "ui-chip-info ui-chip-live"}`} role="status">{error ?? busy}</p>
       )}
-      <div key={tab} className="ui-fade flex-1 overflow-y-auto px-5 pb-6" role="tabpanel">
+      <div key={tab} className="ui-fade flex-1 overflow-y-auto px-5 pt-5 pb-6" role="tabpanel">
         {tab === "agent" && <AgentTab />}
         {tab === "receipt" && <ReceiptTab />}
         {tab === "signoff" && <SignoffTab />}

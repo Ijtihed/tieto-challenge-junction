@@ -30,7 +30,7 @@ function Patch({ patch }: { patch: string }) {
   return (
     <div className="font-[JetBrains_Mono] text-[12.5px] leading-[1.7] min-w-max pb-6">
       {lines.map((l, i) => l.kind === "hunk" ? (
-        <div key={i} className="px-5 py-1.5 my-1 text-on-surface-faint bg-[var(--ui-fill)] sticky top-0 backdrop-blur">{l.text || "next change"}</div>
+        <div key={i} className="px-5 py-1.5 text-on-surface-faint bg-surface-container sticky top-0">{l.text || "next change"}</div>
       ) : (
         <div key={i} className={`flex ${l.kind === "add" ? "bg-phase-pass/[0.09]" : l.kind === "del" ? "bg-phase-fail/[0.09]" : ""}`}>
           <span className="w-12 shrink-0 text-right pr-2 text-on-surface-faint/70 select-none tabular-nums">{l.oldNo ?? ""}</span>
@@ -69,9 +69,9 @@ export default function ChangesView({ runId, compact = false }: { runId: string;
   if (error) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center px-6">
-        <p className="ui-title">The diff could not be loaded</p>
+        <p className="ui-title">The diff did not load</p>
         <p className="ui-body mt-2 max-w-md">The server could not read the agent's commit.</p>
-        <p className="ui-meta ui-code mt-3 text-phase-fail">{error}</p>
+        <p className="ui-chip ui-chip-fail mt-3">{error}</p>
       </div>
     );
   }
@@ -87,7 +87,7 @@ export default function ChangesView({ runId, compact = false }: { runId: string;
   const row = (f: FileDiff) => (
     <button key={f.path} onClick={() => setSel(f.path)}
       aria-pressed={sel === f.path}
-      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-left text-[0.8125rem] transition-colors ${sel === f.path ? "bg-[var(--ui-fill-hover)] text-on-surface" : "text-on-surface-variant hover:bg-[var(--ui-fill)]"}`}>
+      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-[8px] text-left text-[0.8125rem] transition-colors ${sel === f.path ? "bg-[var(--ui-fill-hover)] text-on-surface" : "text-on-surface-variant hover:bg-[var(--ui-fill)]"}`}>
       <span className={`ui-code w-3 ${STATUS[f.status] ?? ""}`}>{f.status}</span>
       <span className="truncate flex-1" title={f.path}>{f.path.split("/").pop()}</span>
       <span className="ui-code text-phase-pass tabular-nums">+{f.added}</span>
@@ -97,8 +97,8 @@ export default function ChangesView({ runId, compact = false }: { runId: string;
 
   return (
     <div className={`flex ${compact ? "h-[520px]" : "h-full"} min-h-0`}>
-      <div className="w-[300px] shrink-0 overflow-y-auto px-3 pb-4">
-        <div className="px-3 pt-1 pb-3">
+      <div className="w-[300px] shrink-0 overflow-y-auto px-2 py-3 border-r border-[var(--ui-hairline)]">
+        <div className="px-3 pb-3">
           <p className="text-[0.875rem] font-medium text-on-surface tabular-nums">
             {data.files.length} {data.files.length === 1 ? "file" : "files"} <span className="text-phase-pass ml-1.5">+{added}</span> <span className={deleted ? "text-phase-fail" : "text-on-surface-faint"}>−{deleted}</span>
           </p>
@@ -109,15 +109,15 @@ export default function ChangesView({ runId, compact = false }: { runId: string;
           <div className="mt-3">
             <button onClick={() => setShowGenerated(!showGenerated)} aria-expanded={showGenerated} className="w-full flex items-center gap-1.5 px-3 py-2 text-left ui-meta hover:text-on-surface transition-colors">
               <span className={`material-symbols-outlined text-[16px] transition-transform duration-200 ${showGenerated ? "rotate-90" : ""}`}>chevron_right</span>
-              {generated.length} generated or snapshot files
+              {generated.length} generated files
             </button>
             {showGenerated && <div className="ui-fade space-y-0.5">{generated.map(row)}</div>}
           </div>
         )}
       </div>
-      <div className="flex-1 min-w-0 flex flex-col m-3 mt-0 ml-0 rounded-[14px] bg-surface overflow-hidden">
+      <div className="flex-1 min-w-0 flex flex-col bg-surface overflow-hidden">
         {current && (
-          <div className="px-5 h-11 shrink-0 flex items-center gap-3 border-b border-[var(--ui-hairline)]">
+          <div className="px-5 h-10 shrink-0 flex items-center gap-3 border-b border-[var(--ui-hairline)]">
             <span className="ui-code text-on-surface-variant truncate">{current.path}</span>
             <span className="ml-auto ui-code text-phase-pass tabular-nums">+{current.added}</span>
             <span className={`ui-code tabular-nums ${current.deleted ? "text-phase-fail" : "text-on-surface-faint"}`}>−{current.deleted}</span>

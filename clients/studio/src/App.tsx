@@ -641,15 +641,13 @@ function ChallengeLanding(props: {
   const repoName = props.path.replace(/\/+$/, "").split("/").pop() || "repository";
   return (
     <div className="fixed inset-0 bg-surface overflow-hidden flex items-center justify-center" data-testid="repo-landing-hero">
-      <div aria-hidden className="absolute inset-x-0 -top-[42vh] h-[90vh] pointer-events-none"
-        style={{ background: "radial-gradient(closest-side, rgba(255,255,255,0.075), transparent 72%)" }} />
       <div className="relative w-full max-w-[620px] px-6 text-center">
-        <SchemaLogo className="w-11 h-11 mx-auto ui-rise" />
-        <h1 className="ui-rise mt-9 text-[2.9rem] leading-[1.04] font-semibold tracking-[-0.045em] text-on-surface" style={{ "--i": 1 } as React.CSSProperties}>
-          Agent code, reviewed<br />with evidence.
+        <SchemaLogo className="w-10 h-10 mx-auto ui-rise" />
+        <h1 className="ui-rise mt-8 text-[2.9rem] leading-[1.04] font-semibold tracking-[-0.04em] text-on-surface [text-wrap:balance]" style={{ "--i": 1 } as React.CSSProperties}>
+          Agent code, reviewed with evidence.
         </h1>
-        <p className="ui-rise mt-5 mx-auto max-w-[30rem] text-[1.0625rem] leading-[1.6] text-on-surface-muted" style={{ "--i": 2 } as React.CSSProperties}>
-          Schema checks an AI agent's pull request against the code, shows the proof behind each claim, and leaves the decision to a named engineer.
+        <p className="ui-rise mt-5 mx-auto max-w-[27rem] text-[1.0625rem] leading-[1.55] text-on-surface-muted [text-wrap:pretty]" style={{ "--i": 2 } as React.CSSProperties}>
+          Schema checks an agent's pull request against the code. A named engineer signs it.
         </p>
 
         <div className="ui-rise mt-10 flex flex-col items-center" style={{ "--i": 3 } as React.CSSProperties}>
@@ -658,14 +656,14 @@ function ChallengeLanding(props: {
               <div className="h-[3px] w-full rounded-full bg-[var(--ui-fill)] overflow-hidden">
                 <div className="h-full rounded-full bg-on-surface transition-[width] duration-700 ease-out" style={{ width: `${Math.max(4, props.progress)}%` }} />
               </div>
-              <p key={props.step?.id ?? "start"} className="ui-fade mt-4 text-sm text-on-surface-variant">{props.step?.label ?? "Opening"}</p>
-              <p className="mt-1 text-xs text-on-surface-faint truncate">{props.step?.sub ?? `Reading ${repoName}`}</p>
+              <p key={props.step?.id ?? "start"} className="ui-fade mt-4 text-[0.875rem] text-on-surface-variant">{props.step?.label ?? "Opening"}</p>
+              <p className="mt-1 ui-meta truncate">{props.step?.sub ?? `Reading ${repoName}`}</p>
             </div>
           ) : (
             <>
-              <button className="ui-btn ui-btn-primary ui-btn-lg ui-btn-pill px-7" onClick={props.onOpen} disabled={!props.path.trim()}>
+              <button className="ui-btn ui-btn-primary ui-btn-lg" onClick={props.onOpen} disabled={!props.path.trim()}>
                 Open {repoName}
-                <span className="material-symbols-outlined text-[18px] -mr-1">arrow_forward</span>
+                <span className="ui-arrow material-symbols-outlined text-[18px] leading-none -mr-1" aria-hidden="true">arrow_forward</span>
               </button>
               {editing ? (
                 <input
@@ -678,14 +676,14 @@ function ChallengeLanding(props: {
                   autoFocus
                 />
               ) : (
-                <button className="mt-4 text-xs text-on-surface-faint hover:text-on-surface-variant transition-colors" onClick={() => setEditing(true)}>
-                  Use another folder
+                <button className="mt-4 ui-meta hover:text-on-surface-variant transition-colors" onClick={() => setEditing(true)}>
+                  Open another folder
                 </button>
               )}
             </>
           )}
           {props.error && (
-            <p className="ui-fade mt-6 max-w-[26rem] rounded-[14px] px-4 py-3 text-sm leading-relaxed text-phase-fail" style={{ background: "color-mix(in srgb, var(--color-phase-fail) 10%, transparent)" }}>
+            <p className="ui-fade mt-6 max-w-[26rem] ui-chip ui-chip-fail !whitespace-normal !items-start text-left">
               {props.error}
             </p>
           )}
