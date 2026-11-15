@@ -6,20 +6,22 @@
    convention) instead of pure-black OLED void.
    ---------------------------------------------------------------------- */
 @theme {
-  --color-surface: #111111;
-  --color-surface-dim: #161616;
-  --color-surface-container: #1C1C1C;
-  --color-surface-container-high: #242424;
-  --color-surface-container-highest: #2E2E2E;
-  --color-surface-bright: #383838;
+  /* Layered near-black with a faint cool cast. Each step is one elevation. */
+  --color-surface: #0A0A0C;
+  --color-surface-dim: #111114;
+  --color-surface-container: #18181C;
+  --color-surface-container-high: #202025;
+  --color-surface-container-highest: #2A2A30;
+  --color-surface-bright: #36363D;
 
-  --color-on-surface: #E5E2E1;
-  --color-on-surface-variant: #A8A8A8;
-  --color-on-surface-muted: #6B6B6B;
-  --color-on-surface-faint: #4A4A4A;
+  /* Text steps all clear WCAG AA on the two darkest surfaces. */
+  --color-on-surface: #F5F5F7;
+  --color-on-surface-variant: #B9B9C0;
+  --color-on-surface-muted: #8E8E96;
+  --color-on-surface-faint: #6C6C75;
 
-  --color-outline: #3A3A3A;
-  --color-outline-variant: #2A2A2A;
+  --color-outline: #34343A;
+  --color-outline-variant: #25252A;
 
   /* Node kinds — slightly desaturated for dark-bg comfort */
   --color-kind-route: #E5AB20;
@@ -51,12 +53,12 @@
   --color-edge-control: #404850;
 
   /* Plan phases */
-  --color-phase-applying: #5A9BE6;
-  --color-phase-testing: #E5AB20;
-  --color-phase-verifying: #B07CE8;
-  --color-phase-pass: #32C48D;
-  --color-phase-fail: #E06060;
-  --color-phase-skip: #6B6B6B;
+  --color-phase-applying: #6AA8FF;
+  --color-phase-testing: #F0B64C;
+  --color-phase-verifying: #B894F5;
+  --color-phase-pass: #3DD68C;
+  --color-phase-fail: #FF6B62;
+  --color-phase-skip: #8E8E96;
 
   /* Graph overlays */
   --color-flash-new: #32C48D;
@@ -67,27 +69,38 @@
   --color-schema-accent: #ffffff;
   --color-schema-muted: #6B6B6B;
 
-  --font-headline: "Inter", sans-serif;
-  --font-body: "Inter", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  --font-headline: "Geist", "Inter", system-ui, sans-serif;
+  --font-body: "Geist", "Inter", system-ui, sans-serif;
+  --font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+
+  /* One easing family for the whole app: quick out, soft landing. */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* -----------------------------------------------------------------------
    Theme-private vars (custom CSS classes that aren't Tailwind utilities).
    ---------------------------------------------------------------------- */
 :root {
-  --schema-page-bg: #111111;
-  --schema-page-fg: #E5E2E1;
-  --schema-grid-line: #1A1A1A;
-  --schema-scroll-thumb: #383838;
-  --schema-scroll-thumb-hover: #555555;
+  --schema-page-bg: #0A0A0C;
+  --schema-page-fg: #F5F5F7;
+  --schema-grid-line: #141417;
+  --schema-scroll-thumb: #36363D;
+  --schema-scroll-thumb-hover: #55555E;
   --schema-selection-bg: #ffffff;
-  --schema-selection-fg: #111111;
+  --schema-selection-fg: #0A0A0C;
 
-  --schema-node-bg: #161616;
-  --schema-node-bg-hover: #1C1C1C;
-  --schema-node-border: #2A2A2A;
-  --schema-node-border-hover: #4A4A4A;
+  --schema-node-bg: #151518;
+  --schema-node-bg-hover: #1C1C21;
+  --schema-node-border: #2A2A30;
+  --schema-node-border-hover: #4C4C55;
+
+  /* Hairlines and glass are alpha so they sit on any elevation. */
+  --ui-hairline: rgba(255, 255, 255, 0.07);
+  --ui-hairline-strong: rgba(255, 255, 255, 0.13);
+  --ui-glass: rgba(17, 17, 20, 0.78);
+  --ui-fill: rgba(255, 255, 255, 0.055);
+  --ui-fill-hover: rgba(255, 255, 255, 0.095);
+  --ui-shadow: 0 1px 0 rgba(255, 255, 255, 0.045) inset, 0 28px 64px -28px rgba(0, 0, 0, 0.75), 0 2px 8px rgba(0, 0, 0, 0.3);
 
   --schema-rf-handle-bg: #2A2A2A;
   --schema-rf-handle-border: #3A3A3A;
@@ -172,6 +185,13 @@
   --color-schema-accent: #111111;
   --color-schema-muted: #d4d4d4;
 
+  --ui-hairline: rgba(0, 0, 0, 0.08);
+  --ui-hairline-strong: rgba(0, 0, 0, 0.16);
+  --ui-glass: rgba(255, 255, 255, 0.82);
+  --ui-fill: rgba(0, 0, 0, 0.045);
+  --ui-fill-hover: rgba(0, 0, 0, 0.08);
+  --ui-shadow: 0 24px 56px -28px rgba(0, 0, 0, 0.28), 0 1px 3px rgba(0, 0, 0, 0.08);
+
   --schema-page-bg: #ffffff;
   --schema-page-fg: #111111;
   --schema-grid-line: #ececec;
@@ -232,7 +252,10 @@
   body {
     background-color: var(--schema-page-bg);
     color: var(--schema-page-fg);
-    font-family: "Inter", sans-serif;
+    font-family: var(--font-body);
+    font-feature-settings: "ss01", "cv11";
+    letter-spacing: -0.006em;
+    text-rendering: optimizeLegibility;
     transition: background-color 150ms ease, color 150ms ease;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -244,15 +267,15 @@
   }
 
   ::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
+    width: 6px;
+    height: 6px;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
     background: var(--schema-scroll-thumb);
-    border-radius: 2px;
+    border-radius: 999px;
   }
   ::-webkit-scrollbar-thumb:hover {
     background: var(--schema-scroll-thumb-hover);
@@ -375,8 +398,8 @@
   }
 
   .schema-node-dim {
-    opacity: 0.3;
-    filter: saturate(0) brightness(0.6);
+    opacity: 0.42;
+    filter: saturate(0.15);
   }
   .schema-node-dim * {
     color: var(--color-on-surface-faint) !important;
@@ -481,6 +504,124 @@
   }
 }
 
+/* -----------------------------------------------------------------------
+   Review UI kit. One radius rule: controls 10px, cards 14px, floating
+   panels 20px, pills fully round. One elevation rule: panels are glass
+   over the canvas, cards are a soft fill, never a box inside a box.
+   ---------------------------------------------------------------------- */
+@layer components {
+  .ui-panel {
+    background: var(--ui-glass);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    backdrop-filter: blur(28px) saturate(160%);
+    border: 1px solid var(--ui-hairline);
+    border-radius: 20px;
+    box-shadow: var(--ui-shadow);
+    overflow: hidden;
+    animation: ui-panel-in 420ms var(--ease-out-soft) both;
+  }
+  .ui-card {
+    background: var(--ui-fill);
+    border-radius: 14px;
+    transition: background-color 180ms var(--ease-out-soft);
+  }
+  .ui-card-hover:hover { background: var(--ui-fill-hover); }
+  .ui-divide > * + * { border-top: 1px solid var(--ui-hairline); }
+
+  .ui-title { font-size: 1.0625rem; line-height: 1.4rem; font-weight: 600; letter-spacing: -0.02em; color: var(--color-on-surface); }
+  .ui-display { font-size: 1.75rem; line-height: 2.05rem; font-weight: 600; letter-spacing: -0.032em; color: var(--color-on-surface); }
+  .ui-body { font-size: 0.875rem; line-height: 1.4rem; color: var(--color-on-surface-variant); }
+  .ui-meta { font-size: 0.75rem; line-height: 1.1rem; color: var(--color-on-surface-muted); }
+  /* Section heading: sentence case, no tracked capitals. */
+  .ui-section { font-size: 0.8125rem; line-height: 1.2rem; font-weight: 600; letter-spacing: -0.01em; color: var(--color-on-surface); }
+
+  .ui-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    height: 2.25rem; padding: 0 0.95rem; border-radius: 10px;
+    font-size: 0.8125rem; font-weight: 500; letter-spacing: -0.01em; white-space: nowrap;
+    color: var(--color-on-surface); background: var(--ui-fill);
+    transition: background-color 160ms var(--ease-out-soft), color 160ms var(--ease-out-soft), transform 120ms var(--ease-out-soft), opacity 160ms;
+    cursor: pointer;
+  }
+  .ui-btn:hover { background: var(--ui-fill-hover); }
+  .ui-btn:active { transform: scale(0.975); }
+  .ui-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
+  .ui-btn-primary { background: var(--color-on-surface); color: var(--color-surface); font-weight: 600; }
+  .ui-btn-primary:hover { background: color-mix(in srgb, var(--color-on-surface) 88%, var(--color-surface)); }
+  .ui-btn-quiet { background: transparent; color: var(--color-on-surface-variant); }
+  .ui-btn-quiet:hover { background: var(--ui-fill); color: var(--color-on-surface); }
+  .ui-btn-lg { height: 2.75rem; padding: 0 1.25rem; border-radius: 12px; font-size: 0.9375rem; }
+  .ui-btn-pill { border-radius: 999px; }
+  .ui-icon-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 2rem; height: 2rem; border-radius: 999px; color: var(--color-on-surface-muted);
+    transition: background-color 160ms var(--ease-out-soft), color 160ms var(--ease-out-soft), transform 120ms var(--ease-out-soft);
+  }
+  .ui-icon-btn:hover { background: var(--ui-fill-hover); color: var(--color-on-surface); }
+  .ui-icon-btn:active { transform: scale(0.94); }
+
+  .ui-chip {
+    display: inline-flex; align-items: center; gap: 0.375rem;
+    height: 1.375rem; padding: 0 0.55rem; border-radius: 999px;
+    font-size: 0.6875rem; font-weight: 500; line-height: 1; white-space: nowrap;
+    color: var(--color-on-surface-variant); background: var(--ui-fill);
+  }
+  .ui-chip-pass { color: var(--color-phase-pass); background: color-mix(in srgb, var(--color-phase-pass) 13%, transparent); }
+  .ui-chip-warn { color: var(--color-phase-testing); background: color-mix(in srgb, var(--color-phase-testing) 13%, transparent); }
+  .ui-chip-fail { color: var(--color-phase-fail); background: color-mix(in srgb, var(--color-phase-fail) 13%, transparent); }
+  .ui-chip-info { color: var(--color-phase-applying); background: color-mix(in srgb, var(--color-phase-applying) 13%, transparent); }
+
+  .ui-input {
+    width: 100%; border-radius: 10px; padding: 0.6rem 0.8rem;
+    font-size: 0.8125rem; line-height: 1.25rem; color: var(--color-on-surface);
+    background: var(--ui-fill); outline: none; border: 1px solid transparent;
+    transition: border-color 160ms var(--ease-out-soft), background-color 160ms var(--ease-out-soft);
+  }
+  .ui-input::placeholder { color: var(--color-on-surface-faint); }
+  .ui-input:focus { border-color: var(--ui-hairline-strong); background: var(--ui-fill-hover); }
+
+  /* Segmented control: one sliding choice, like a system tab bar. */
+  .ui-seg { display: inline-flex; padding: 3px; border-radius: 11px; background: var(--ui-fill); gap: 2px; }
+  .ui-seg > button {
+    height: 1.75rem; padding: 0 0.8rem; border-radius: 8px; font-size: 0.75rem; font-weight: 500;
+    color: var(--color-on-surface-muted); white-space: nowrap;
+    transition: background-color 180ms var(--ease-out-soft), color 180ms var(--ease-out-soft);
+  }
+  .ui-seg > button:hover { color: var(--color-on-surface); }
+  .ui-seg > button[aria-pressed="true"], .ui-seg > button[aria-selected="true"] {
+    background: var(--color-surface-container-highest); color: var(--color-on-surface);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .ui-dot { width: 6px; height: 6px; border-radius: 999px; flex: none; background: currentColor; }
+  .ui-code { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: -0.01em; }
+
+  .ui-rise { animation: ui-rise 520ms var(--ease-out-soft) both; animation-delay: calc(var(--i, 0) * 55ms); }
+  .ui-fade { animation: ui-fade 260ms var(--ease-out-soft) both; }
+  .ui-scrim { background: rgba(4, 4, 6, 0.62); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); animation: ui-fade 220ms var(--ease-out-soft) both; }
+  .ui-sheet { animation: ui-sheet-in 380ms var(--ease-out-soft) both; }
+}
+
+@keyframes ui-panel-in { from { opacity: 0; transform: translateX(14px) scale(0.985); } to { opacity: 1; transform: none; } }
+@keyframes ui-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes ui-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ui-sheet-in { from { opacity: 0; transform: translateY(18px) scale(0.985); } to { opacity: 1; transform: none; } }
+
+/* The mono utility used across the app follows the mono token. */
+.font-\[JetBrains_Mono\] { font-family: var(--font-mono); letter-spacing: -0.01em; }
+
+:focus-visible { outline: 2px solid var(--ui-hairline-strong); outline-offset: 2px; }
+/* Text fields show focus on their container, not as a second ring inside it. */
+input:focus-visible, textarea:focus-visible { outline: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-panel, .ui-rise, .ui-fade, .ui-scrim, .ui-sheet { animation: none; }
+  .ui-btn:active, .ui-icon-btn:active { transform: none; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .ui-panel { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--color-surface-dim); }
+}
+
 /* React Flow visual reset + Studio polish */
 .react-flow__renderer,
 .react-flow__pane {
@@ -552,14 +693,20 @@
   overflow: hidden;
 }
 .react-flow__controls {
-  border-radius: 8px !important;
+  border-radius: 14px !important;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-  border: 1px solid var(--schema-rf-controls-border) !important;
+  box-shadow: var(--ui-shadow) !important;
+  border: 1px solid var(--ui-hairline) !important;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
 }
 .react-flow__controls-button {
-  background: var(--schema-rf-controls-bg) !important;
-  border-bottom: 1px solid var(--schema-rf-controls-border) !important;
+  width: 34px !important;
+  height: 34px !important;
+}
+.react-flow__controls-button {
+  background: var(--ui-glass) !important;
+  border-bottom: 1px solid var(--ui-hairline) !important;
   color: var(--color-on-surface-variant) !important;
   fill: var(--color-on-surface-variant) !important;
   transition: background 150ms ease, color 150ms ease;

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { callTool } from "@/mcp-client";
 import { useTrust } from "@/state/trust";
+import { useStore } from "@/state/store";
 
 interface IssueRun { runId: string; status: string; startedAt: string; branch: string; prUrl?: string; pageUrl?: string }
 interface Issue {
@@ -16,7 +17,8 @@ const TRACKER: Record<string, { label: string; color: string; glyph: string }> =
   linear: { label: "Linear", color: "#8b8dfc", glyph: "◆" },
   jira: { label: "Jira", color: "#4c9aff", glyph: "▲" },
 };
-const PRIORITY: Record<string, string> = { Urgent: "text-phase-fail", High: "text-phase-applying", Medium: "text-kind-service", Low: "text-on-surface-muted" };
+// Only the two priorities that change what you do get colour.
+const PRIORITY: Record<string, string> = { Urgent: "ui-chip-fail", High: "ui-chip-warn", Medium: "", Low: "" };
 
 function ago(iso: string): string {
   const s = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000));
@@ -41,117 +43,123 @@ export default function ReviewList() {
     return () => { alive = false; clearInterval(t); };
   }, [refresh]);
 
-  if (!data) return <div className="p-4 text-xs text-on-surface-muted">Syncing issues from trackers…</div>;
+  if (!data) {
+    return (
+      <div className="px-3 pb-4 space-y-2" aria-busy="true">
+        {[0, 1, 2].map((i) => <div key={i} className="ui-card h-[104px] schema-skeleton" />)}
+        <p className="sr-only">Syncing issues from trackers</p>
+      </div>
+    );
+  }
   const q = query.trim().toLowerCase();
   const matches = (i: Issue) => !q || [i.key, i.title, i.status, i.priority, i.requirementId, ...i.labels].some((x) => x.toLowerCase().includes(q));
   // Everything shows until you search; issues with a run in progress always stay visible.
   const isActive = (i: Issue) => i.runs.some((r) => r.status === "running");
   const issues = data.issues.filter((i) => (filter === "all" || i.tracker === filter) && (matches(i) || isActive(i)));
   const visibleFor = (f: string) => data.issues.filter((i) => (f === "all" || i.tracker === f) && matches(i)).length;
-  const activeCount = data.issues.filter(isActive).length;
+  // The run takes over the panel area; the list comes back from the Issues button in the top bar.
+  const focusRun = () => useStore.getState().setSidePanelView(null);
 
   return (
-    <div className="p-4 space-y-3">
-      <div className="space-y-1.5">
-        {data.connectors.map((c) => (
-          <div key={c.id} className="flex items-center gap-2 text-xs">
-            <span style={{ color: TRACKER[c.id]?.color }}>{TRACKER[c.id]?.glyph}</span>
-            <span className="text-white">{c.name}</span>
-            <span className="text-on-surface-muted font-[JetBrains_Mono]">{c.workspace}</span>
-            <span className="ml-auto flex items-center gap-1.5 text-[11px] text-phase-pass"><span className="w-1.5 h-1.5 rounded-full bg-phase-pass" />MCP · synced {ago(data.syncedAt)}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex items-center gap-2 border border-outline-variant bg-surface px-3 py-2 focus-within:border-neutral-500">
-        <span className="material-symbols-outlined text-[16px] text-on-surface-muted">search</span>
+    <div className="px-3 pb-4">
+      <label className="flex items-center gap-2.5 ui-input !py-0 h-10 focus-within:border-[var(--ui-hairline-strong)]">
+        <span className="material-symbols-outlined text-[18px] text-on-surface-faint" style={{ fontVariationSettings: "'wght' 300" }}>search</span>
         <input
           autoFocus
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={`Search ${data.issues.length} issues: key, title or label`}
-          className="flex-1 bg-transparent text-xs text-white placeholder:text-on-surface-muted outline-none"
+          placeholder="Search by key, title or label"
+          aria-label="Search issues"
+          className="flex-1 bg-transparent text-[0.8125rem] text-on-surface placeholder:text-on-surface-faint outline-none"
         />
-        {query && <button onClick={() => setQuery("")} className="material-symbols-outlined text-[16px] text-on-surface-muted hover:text-white">close</button>}
+        {query && <button onClick={() => setQuery("")} aria-label="Clear search" className="material-symbols-outlined text-[16px] text-on-surface-muted hover:text-on-surface">close</button>}
+      </label>
+
+      <div className="flex items-center justify-between mt-3 mb-3 px-1">
+        <div className="ui-seg" role="group" aria-label="Tracker">
+          {["all", ...data.connectors.map((c) => c.id)].map((f) => (
+            <button key={f} aria-pressed={filter === f} onClick={() => setFilter(f)}>
+              {f === "all" ? "All" : TRACKER[f]?.label} <span className="text-on-surface-faint tabular-nums">{visibleFor(f)}</span>
+            </button>
+          ))}
+        </div>
+        <span className="flex items-center gap-1.5 ui-meta" title={data.connectors.map((c) => `${c.name} · ${c.workspace} · ${c.status}`).join("\n")}>
+          <span className="ui-dot text-phase-pass" />Synced {ago(data.syncedAt)}
+        </span>
       </div>
 
-      <div className="flex gap-1 text-[11px]">
-        {["all", ...data.connectors.map((c) => c.id)].map((f) => (
-          <button key={f} onClick={() => setFilter(f)} className={`px-2.5 py-1 border ${filter === f ? "border-schema-accent text-white" : "border-outline-variant text-on-surface-muted hover:text-white"}`}>
-            {f === "all" ? "All" : TRACKER[f]?.label} ({visibleFor(f)})
-          </button>
-        ))}
-      </div>
-
-      <div className="text-[11px] text-on-surface-muted">
-        {q
-          ? `${visibleFor(filter)} of ${data.issues.length} issues match “${query}”${activeCount ? ` · ${activeCount} in progress` : ""}`
-          : `${data.issues.length} issues synced${activeCount ? ` · ${activeCount} in progress` : ""}`}
-      </div>
       {issues.length === 0 && (
-        <div className="py-6 text-center text-xs text-on-surface-muted">
-          {`No issues match “${query}”.`}
+        <div className="py-12 text-center">
+          <p className="ui-body">No issue matches "{query}".</p>
+          <button className="ui-btn ui-btn-quiet mt-3" onClick={() => setQuery("")}>Clear search</button>
         </div>
       )}
-      {issues.map((i) => {
-        const t = TRACKER[i.tracker];
-        const active = i.runs.find((r) => r.status === "running");
-        return (
-          <div key={i.key} className="border border-outline-variant/60 bg-surface">
-            <div className="px-3 py-2.5 border-b border-outline-variant/60">
-              <div className="flex items-center gap-2 text-[11px]">
-                <span style={{ color: t?.color }}>{t?.glyph}</span>
-                <span className="font-[JetBrains_Mono] text-white">{i.key}</span>
-                <span className="text-on-surface-muted">· {i.status}</span>
-                <span className={`ml-auto ${PRIORITY[i.priority] ?? ""}`}>{i.priority}</span>
+      <div className="space-y-2">
+        {issues.map((i, idx) => {
+          const t = TRACKER[i.tracker];
+          return (
+            <article key={i.key} className="ui-card ui-rise p-4" style={{ "--i": idx } as React.CSSProperties}>
+              <div className="flex items-center gap-2 ui-meta">
+                <span aria-hidden style={{ color: t?.color }}>{t?.glyph}</span>
+                <span className="ui-code text-on-surface-variant">{i.key}</span>
+                <span>{i.status}</span>
+                {PRIORITY[i.priority] ? <span className={`ui-chip ml-auto ${PRIORITY[i.priority]}`}>{i.priority}</span> : <span className="ml-auto">{i.priority}</span>}
               </div>
-              <div className="text-xs text-neutral-200 mt-1 leading-snug">{i.title}</div>
-              <div className="flex flex-wrap items-center gap-1 mt-1.5">
-                {i.labels.map((l) => <span key={l} className="text-[10px] px-1.5 border border-outline-variant text-on-surface-variant">{l}</span>)}
-                <span className="ml-auto text-[10px] text-on-surface-faint">{i.assignee} · {ago(i.updatedAt)}</span>
-              </div>
-            </div>
-            <IssueAction issue={i} busy={!!busy} onFix={() => void startFix(`Fix ${i.key} (#${i.requirementId.slice(4)}): ${i.title}`, i.requirementId)} onOpen={(runId) => { useTrust.setState({ open: false }); watchRun(runId); }} />
-          </div>
-        );
-      })}
-      <p className="text-[10px] text-on-surface-faint leading-relaxed">{data.note}</p>
+              <h3 className="mt-2 text-[0.9375rem] leading-[1.38] font-medium tracking-[-0.015em] text-on-surface">{i.title}</h3>
+              <p className="mt-1.5 ui-meta truncate">{[...i.labels, `updated ${ago(i.updatedAt)}`].join(" · ")}</p>
+              <IssueAction
+                issue={i}
+                busy={!!busy}
+                onFix={() => { focusRun(); void startFix(`Fix ${i.key} (#${i.requirementId.slice(4)}): ${i.title}`, i.requirementId); }}
+                onOpen={(runId) => { focusRun(); useTrust.setState({ open: false }); watchRun(runId); }}
+              />
+            </article>
+          );
+        })}
+      </div>
+      <p className="mt-4 px-1 ui-meta text-on-surface-faint leading-relaxed">{data.note}</p>
     </div>
   );
 }
 
-/** One button per issue, following the latest agent run: fix -> working -> open PR -> PR link. */
+/** One action per issue, following the latest agent run: fix -> working -> review -> PR. */
 function IssueAction({ issue, busy, onFix, onOpen }: { issue: Issue; busy: boolean; onFix: () => void; onOpen: (runId: string) => void }) {
   const last = issue.runs[0];
-  const row = "w-full flex items-center gap-2 px-3 py-2.5 text-left text-xs border-t border-outline-variant/40";
+  const row = "mt-3.5 flex items-center gap-2";
   if (last?.status === "running") {
     return (
-      <button onClick={() => onOpen(last.runId)} className={`${row} text-phase-applying hover:bg-surface-container-high`}>
-        <span className="w-2 h-2 rounded-full bg-phase-applying animate-pulse" />Claude Code is working on this… <span className="ml-auto text-on-surface-muted">view</span>
-      </button>
+      <div className={row}>
+        <span className="flex items-center gap-2 text-[0.8125rem] text-phase-applying"><span className="ui-dot animate-pulse" />Claude Code is working</span>
+        <button onClick={() => onOpen(last.runId)} className="ui-btn ml-auto">Watch</button>
+      </div>
     );
   }
   if (last?.status === "done" && last.prUrl) {
     return (
-      <div className={`${row} justify-between`}>
-        <a href={last.pageUrl ?? last.prUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-kind-service hover:underline">
-          <span className="material-symbols-outlined text-[16px]">merge</span>PR #{last.prUrl.split("/").pop()} opened
+      <div className={row}>
+        <button onClick={() => onOpen(last.runId)} className="ui-btn ui-btn-primary">Review the change</button>
+        <a href={last.pageUrl ?? last.prUrl} target="_blank" rel="noreferrer" className="ui-btn ui-btn-quiet">
+          PR #{last.prUrl.split("/").pop()}
+          <span className="material-symbols-outlined text-[15px] -mr-0.5" style={{ fontVariationSettings: "'wght' 300" }}>arrow_outward</span>
         </a>
-        <button onClick={() => onOpen(last.runId)} className="text-on-surface-muted hover:text-white">details</button>
       </div>
     );
   }
   if (last?.status === "done") {
     return (
-      <button onClick={() => onOpen(last.runId)} className={`${row} text-white hover:bg-surface-container-high`}>
-        <span className="material-symbols-outlined text-[16px] text-phase-pass">task_alt</span>Claude finished · review and open PR
-      </button>
+      <div className={row}>
+        <button onClick={() => onOpen(last.runId)} className="ui-btn ui-btn-primary">Review the change</button>
+        <span className="ui-meta">Claude finished, no PR yet</span>
+      </div>
     );
   }
   return (
-    <button disabled={busy} onClick={onFix} className={`${row} text-neutral-200 hover:bg-surface-container-high disabled:opacity-50`}>
-      <span className="material-symbols-outlined text-[16px] text-phase-applying">smart_toy</span>
-      {last?.status === "failed" ? "Last attempt failed · fix it with Claude Code" : "Fix it with Claude Code"}
-    </button>
+    <div className={row}>
+      <button disabled={busy} onClick={onFix} className="ui-btn">
+        <span className="material-symbols-outlined text-[17px] -ml-0.5" style={{ fontVariationSettings: "'wght' 300" }}>auto_fix_high</span>
+        {last?.status === "failed" ? "Try again with Claude Code" : "Fix with Claude Code"}
+      </button>
+      {last?.status === "failed" && <span className="ui-meta text-phase-fail">Last attempt failed</span>}
+    </div>
   );
 }

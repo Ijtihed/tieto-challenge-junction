@@ -115,14 +115,14 @@ export default function RepoMap() {
   return (
     <div className="absolute inset-0 pointer-events-none [&>*]:pointer-events-auto">
       <EdgeHoverCard />
-      <div className="absolute top-3 right-3 z-30 flex flex-col gap-2 w-[340px]">
+      <div className="absolute top-3 left-3 z-30 flex flex-col gap-2 w-[320px]" role="status" aria-live="polite">
         {notes.map((n) => (
           <a key={n.id} href={n.href} target={n.href ? "_blank" : undefined} rel="noreferrer"
-            className="flex gap-3 items-start bg-surface-dim/95 backdrop-blur border border-outline-variant px-3 py-2.5 shadow-2xl animate-[fadeIn_200ms_ease-out]">
-            <span className="material-symbols-outlined text-[18px] mt-0.5" style={{ color: n.color }}>{n.icon}</span>
+            className="ui-panel !rounded-[16px] flex gap-3 items-start px-4 py-3" style={{ animationName: "ui-rise" }}>
+            <span className="material-symbols-outlined text-[18px] mt-0.5" style={{ color: n.color, fontVariationSettings: "'wght' 300" }}>{n.icon}</span>
             <span className="min-w-0">
-              <span className="block text-xs text-white">{n.title}</span>
-              {n.body && <span className="block text-[11px] text-on-surface-variant font-[JetBrains_Mono] truncate">{n.body}</span>}
+              <span className="block text-[0.8125rem] font-medium text-on-surface">{n.title}</span>
+              {n.body && <span className="block ui-meta mt-0.5 line-clamp-2">{n.body}</span>}
             </span>
           </a>
         ))}
@@ -146,11 +146,11 @@ function EdgeHoverCard() {
   }, []);
   if (!info) return null;
   return (
-    <div className="fixed z-50 max-w-[380px] bg-surface-dim/95 backdrop-blur border border-outline-variant px-3 py-2.5 shadow-2xl pointer-events-none" style={{ left: info.x + 14, top: info.y + 14 }}>
-      <div className="text-xs text-white font-[JetBrains_Mono]">{info.title}</div>
-      <div className="text-[11px] text-on-surface-variant mt-1 leading-relaxed">{info.description}</div>
+    <div className="fixed z-50 max-w-[380px] ui-panel !rounded-[14px] px-4 py-3 pointer-events-none" style={{ left: info.x + 14, top: info.y + 14, animationName: "ui-fade", animationDuration: "140ms" }}>
+      <div className="text-[0.8125rem] font-medium text-on-surface">{info.title}</div>
+      <div className="ui-meta mt-1 leading-relaxed">{info.description}</div>
       {info.examples.length > 0 && (
-        <ul className="mt-1.5 space-y-0.5">{info.examples.map((x) => <li key={x} className="text-[10.5px] font-[JetBrains_Mono] text-on-surface-muted">{x}</li>)}</ul>
+        <ul className="mt-2 space-y-0.5">{info.examples.map((x) => <li key={x} className="ui-meta ui-code text-on-surface-faint">{x}</li>)}</ul>
       )}
     </div>
   );

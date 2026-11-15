@@ -55,24 +55,16 @@ export default function CommandBar() {
   }
 
   return (
-    <div className="border-t border-outline-variant bg-surface/95 backdrop-blur shrink-0">
-      {agentRunning && (
-        <button onClick={openPanel} className="w-full px-5 py-2 border-b border-outline-variant/60 flex items-center gap-3 text-left hover:bg-surface-container">
-          <span className="w-2 h-2 rounded-full bg-phase-applying animate-pulse shrink-0" />
-          <span className="text-xs text-white shrink-0">Claude Code is working on {run?.requirementId}</span>
-          <span className="text-[11px] font-[JetBrains_Mono] text-on-surface-muted shrink-0">{elapsed} · {run?.steps.length ?? 0} steps</span>
-          <span className="text-[11px] font-[JetBrains_Mono] text-on-surface-variant truncate">
-            {lastAction ? lastAction.title : "starting up, first output usually takes 15-30 s…"}
-          </span>
-        </button>
-      )}
+    <div className="absolute z-20 left-1/2 -translate-x-1/2 bottom-5 w-[min(680px,calc(100%-7rem))] flex flex-col gap-2">
       {showSamples && !busy && (
-        <div className="px-5 py-4 border-b border-outline-variant/60 grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div className="ui-panel ui-sheet p-1.5" role="listbox" aria-label="Open issues">
           {prompts.map((p) => (
             <button
               key={p}
+              role="option"
+              aria-selected={false}
               onClick={() => { setValue(p); setShowSamples(false); }}
-              className="text-left px-4 py-2.5 border border-outline-variant/60 bg-surface-dim hover:border-neutral-600 hover:bg-surface-container-high transition-colors text-sm text-neutral-300 leading-relaxed"
+              className="w-full text-left px-3.5 py-2.5 rounded-[12px] text-[0.8125rem] leading-snug text-on-surface-variant hover:bg-[var(--ui-fill-hover)] hover:text-on-surface transition-colors"
             >
               {p}
             </button>
@@ -80,31 +72,37 @@ export default function CommandBar() {
         </div>
       )}
 
-      <form onSubmit={onSubmit} className="px-5 py-3 flex items-center gap-3">
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onFocus={() => setShowSamples(true)}
-          disabled={busy}
-          placeholder={CHALLENGE_MODE ? "Ask the agent to fix an issue, e.g. fix MP-2283" : "Describe a change, or: fix issue #2283"}
-          className="flex-1 bg-transparent text-sm text-white placeholder:text-on-surface-muted outline-none disabled:opacity-50"
-        />
-        <button type="button" onClick={() => setShowSamples((v) => !v)} className="px-3 py-1.5 text-xs text-neutral-400 hover:text-white transition-colors">
-          Issues
-        </button>
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className={`px-5 py-2 border text-xs transition-colors ${
-            !canSubmit
-              ? "border-outline-variant text-on-surface-faint cursor-default"
-              : "border-schema-accent text-schema-accent hover:bg-schema-accent hover:text-black cursor-pointer"
-          }`}
-        >
-          {busy ? "Running..." : agentReq ? `Fix ${agentReq} with Claude Code` : CHALLENGE_MODE ? "Name an issue" : "Plan"}
-        </button>
-      </form>
+      <div className="ui-panel !rounded-[26px]" style={{ animationName: "ui-rise" }}>
+        {agentRunning && (
+          <button onClick={openPanel} className="w-full px-5 pt-3 pb-1 flex items-center gap-3 text-left">
+            <span className="ui-dot text-phase-applying animate-pulse" />
+            <span className="text-[0.8125rem] text-on-surface shrink-0">Claude Code is working on {run?.requirementId}</span>
+            <span className="ui-meta ui-code tabular-nums shrink-0">{elapsed} · {run?.steps.length ?? 0} steps</span>
+            <span className="ui-meta ui-code truncate">
+              {lastAction ? lastAction.title : "starting up, first output usually takes 15-30 s"}
+            </span>
+          </button>
+        )}
+        <form onSubmit={onSubmit} className="pl-5 pr-2 h-[52px] flex items-center gap-2">
+          <span className="material-symbols-outlined text-[19px] text-on-surface-faint" style={{ fontVariationSettings: "'wght' 300" }}>auto_fix_high</span>
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onFocus={() => setShowSamples(true)}
+            disabled={busy}
+            aria-label="Ask the agent to fix an issue"
+            placeholder={CHALLENGE_MODE ? "Ask the agent to fix an issue, for example MP-2283" : "Describe a change, or: fix issue #2283"}
+            className="flex-1 min-w-0 bg-transparent text-[0.9375rem] text-on-surface placeholder:text-on-surface-faint outline-none disabled:opacity-50"
+          />
+          <button type="button" onClick={() => setShowSamples((v) => !v)} aria-expanded={showSamples} className="ui-btn ui-btn-quiet ui-btn-pill">
+            Suggestions
+          </button>
+          <button type="submit" disabled={!canSubmit} className="ui-btn ui-btn-primary ui-btn-pill">
+            {busy ? "Running" : agentReq ? `Fix ${agentReq}` : CHALLENGE_MODE ? "Fix" : "Plan"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

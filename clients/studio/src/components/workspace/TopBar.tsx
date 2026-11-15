@@ -18,6 +18,8 @@ export default function TopBar() {
   const drillPath = useStore((s) => s.drillPath);
   const popToSegment = useStore((s) => s.popToSegment);
   const workingGraph = useStore((s) => s.workingGraph);
+  const sidePanelView = useStore((s) => s.sidePanelView);
+  const setSidePanelView = useStore((s) => s.setSidePanelView);
 
   const deepest = drillPath[drillPath.length - 1];
 
@@ -34,7 +36,7 @@ export default function TopBar() {
   }, [drillPath, workingGraph]);
 
   return (
-    <header className="h-16 border-b border-outline-variant bg-surface-dim flex items-center justify-between px-5 shrink-0 relative z-50">
+    <header className={`${CHALLENGE_MODE ? "h-14 bg-surface" : "h-16 border-b border-outline-variant bg-surface-dim"} flex items-center justify-between px-5 shrink-0 relative z-50`}>
       {/* Left: logo + repo */}
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <Link
@@ -42,9 +44,10 @@ export default function TopBar() {
           className="flex items-center gap-2 hover:opacity-70 transition-opacity shrink-0"
           title="Schema Studio"
         >
-          <SchemaLogo className="w-9 h-9" />
+          <SchemaLogo className={CHALLENGE_MODE ? "w-7 h-7" : "w-9 h-9"} />
         </Link>
         <span
+          hidden={CHALLENGE_MODE && mcpStatus === "connected"}
           className={`w-2 h-2 rounded-full shrink-0 ${
             mcpStatus === "connected" ? "bg-green-400" :
             mcpStatus === "reconnecting" ? "bg-yellow-400 animate-pulse" :
@@ -52,17 +55,19 @@ export default function TopBar() {
           }`}
           title={`MCP: ${mcpStatus}`}
         />
-        <LiveAtlasIndicator
-          watching={liveAtlas.watching}
-          lastEventAt={liveAtlas.lastEventAt}
-          eventsReceived={liveAtlas.eventsReceived}
-        />
-        <span className="w-px h-5 bg-outline-variant shrink-0" />
-        <span className="text-base text-on-surface-variant truncate">{repo.label}</span>
-        {repo.subtitle && (
-          <span className="text-xs text-on-surface-faint truncate hidden sm:inline">{repo.subtitle}</span>
+        {CHALLENGE_MODE ? null : (
+          <LiveAtlasIndicator
+            watching={liveAtlas.watching}
+            lastEventAt={liveAtlas.lastEventAt}
+            eventsReceived={liveAtlas.eventsReceived}
+          />
         )}
-        {diffProbe?.headBranch && (
+        {CHALLENGE_MODE ? null : <span className="w-px h-5 bg-outline-variant shrink-0" />}
+        <span className={CHALLENGE_MODE ? "text-[0.9375rem] font-semibold tracking-[-0.02em] text-on-surface truncate" : "text-base text-on-surface-variant truncate"}>{repo.label}</span>
+        {repo.subtitle && (
+          <span className={`${CHALLENGE_MODE ? "text-[0.8125rem] text-on-surface-muted" : "text-xs text-on-surface-faint"} truncate hidden sm:inline`}>{repo.subtitle}</span>
+        )}
+        {diffProbe?.headBranch && !CHALLENGE_MODE && (
           <BranchPill
             branch={diffProbe.headBranch}
             ahead={diffProbe.ahead}
@@ -108,6 +113,17 @@ export default function TopBar() {
       <div className="flex items-center gap-3 flex-1 justify-end">
         {CHALLENGE_MODE ? null : <><DiffToggle /><LevelToggle /></>}
         {CHALLENGE_MODE ? null : <UserMenu />}
+        {CHALLENGE_MODE ? (
+          <button
+            data-testid="rail-review"
+            aria-pressed={sidePanelView === "review"}
+            onClick={() => setSidePanelView(sidePanelView === "review" ? null : "review")}
+            className={`ui-btn ui-btn-pill ${sidePanelView === "review" ? "" : "ui-btn-quiet"}`}
+          >
+            <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'wght' 300" }}>inbox</span>
+            Issues
+          </button>
+        ) : null}
       </div>
     </header>
   );
@@ -169,13 +185,9 @@ function BranchPill(props: {
               props.base ? ` · base ${props.base}` : ""
             }`
       }
-      className={`hidden sm:inline-flex items-center gap-1.5 font-[JetBrains_Mono] text-xs tracking-[0.06em] px-2 py-0.5 border ${
-        props.dirty
-          ? "border-phase-applying/40 text-phase-applying"
-          : "border-outline-variant text-on-surface-variant"
-      }`}
+      className={`hidden sm:inline-flex ui-chip ui-code ${props.dirty ? "ui-chip-info" : ""}`}
     >
-      <span className="material-symbols-outlined text-[10px] leading-none">
+      <span className="material-symbols-outlined text-[13px] leading-none" style={{ fontVariationSettings: "'wght' 300" }}>
         alt_route
       </span>
       <span className="truncate max-w-[140px]">{props.branch}</span>

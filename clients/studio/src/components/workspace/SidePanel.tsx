@@ -33,7 +33,7 @@ const VIEW_META: Record<string, { title: string; sub: string }> = {
   query: { title: "Query", sub: "Graph queries" },
   wisdom: { title: "Wisdom", sub: "Knowledge base" },
   settings: { title: "Settings", sub: "Preferences" },
-  review: { title: "Issues", sub: "Linear + Jira via MCP · fix with Claude Code" },
+  review: { title: "Issues", sub: "Pick one and hand it to the agent" },
 };
 
 export default function SidePanel() {
@@ -72,19 +72,19 @@ export default function SidePanel() {
     <aside
       data-testid="side-panel"
       aria-label={meta.title}
-      className="w-[400px] shrink-0 border-l border-outline-variant bg-surface-dim flex flex-col"
+      className="w-[400px] shrink-0 m-3 ml-0 ui-panel flex flex-col"
     >
-      <div className="px-5 py-4 border-b border-outline-variant flex items-baseline justify-between gap-3">
+      <div className="px-5 pt-5 pb-3 flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-base text-white">{meta.title}</h2>
-          <p className="text-xs text-neutral-300 mt-0.5">
+          <h2 className="ui-title">{meta.title}</h2>
+          <p className="ui-meta mt-0.5">
             {meta.sub}
           </p>
         </div>
         <button
           onClick={close}
           data-testid="side-panel-close"
-          className="w-8 h-8 flex items-center justify-center text-neutral-300 hover:text-white hover:bg-surface-container-high transition-colors"
+          className="ui-icon-btn -mr-1 -mt-1"
           title="Close"
           aria-label="Close panel"
         >

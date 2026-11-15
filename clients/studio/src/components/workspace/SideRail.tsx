@@ -121,6 +121,7 @@ export default function SideRail() {
   }
 
   const settingsActive = sidePanelView === "settings";
+  if (CHALLENGE_MODE) return null;
 
   return (
     <aside className="w-14 shrink-0 border-r border-outline-variant bg-surface flex flex-col items-center py-3 gap-2 relative">

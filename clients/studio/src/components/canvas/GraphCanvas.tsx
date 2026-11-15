@@ -1161,7 +1161,7 @@ function CanvasInner() {
       nodesConnectable={false}
       panOnScroll
       zoomOnPinch
-      minZoom={0.3}
+      minZoom={0.18}
       maxZoom={1.6}
     >
       <Background gap={32} size={1} color={themeColors.gridLine} />

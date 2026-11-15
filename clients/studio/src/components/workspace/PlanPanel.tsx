@@ -8,6 +8,7 @@ import { useStore } from "@/state/store";
 import { fetchApi } from "@/lib/api";
 import type { Step, StepPhase } from "@/lib/types";
 import ChangesView from "@/components/trust/ChangesView";
+import { CHALLENGE_MODE } from "@/lib/challenge";
 
 /**
  * Result of GET /api/git/probe. Mirrors the server-side shape but
@@ -23,6 +24,16 @@ interface GitProbeView {
   isDirty: boolean;
   dirtyFiles: string[];
 }
+
+const PHASE_CHIP: Record<StepPhase, string> = {
+  queued: "",
+  applying: "ui-chip-info",
+  testing: "ui-chip-warn",
+  verifying_intent: "ui-chip-info",
+  passed: "ui-chip-pass",
+  failed: "ui-chip-fail",
+  skipped: "",
+};
 
 const PHASE_LABEL: Record<StepPhase, string> = {
   queued: "queued",
@@ -61,10 +72,10 @@ function StepLabel({ step, idx }: { step: Step; idx: number }) {
         <span className="text-xs text-on-surface-faint tabular-nums shrink-0">
           [{num}]
         </span>
-        <span className="font-[JetBrains_Mono] text-sm text-schema-accent shrink-0">
+        <span className="ui-code text-on-surface-muted shrink-0">
           {step.opName}
         </span>
-        <span className="text-sm text-neutral-200 truncate">
+        <span className="text-[0.8125rem] text-on-surface-variant truncate">
           {step.description}
         </span>
       </div>
@@ -75,10 +86,10 @@ function StepLabel({ step, idx }: { step: Step; idx: number }) {
       <span className="text-xs text-on-surface-faint tabular-nums shrink-0">
         [{num}]
       </span>
-      <span className="font-[JetBrains_Mono] text-sm text-kind-external shrink-0">
+      <span className="ui-code text-on-surface-muted shrink-0">
         freeform
       </span>
-      <span className="text-sm text-neutral-200 truncate">
+      <span className="text-[0.8125rem] text-on-surface-variant truncate">
         {step.description} · {step.files.length} file(s)
       </span>
     </div>
@@ -210,7 +221,7 @@ export default function PlanPanel() {
 
   if (planPhase === "idle" && planError) {
     return (
-      <aside className="w-[420px] shrink-0 border-l border-outline-variant bg-surface-dim flex flex-col">
+      <aside className="w-[420px] shrink-0 m-3 ml-0 ui-panel flex flex-col">
         <div className="px-5 py-4 border-b border-outline-variant">
           <h2 className="text-base text-white">Plan</h2>
           <p className="text-xs text-phase-fail mt-1">Generation failed</p>
@@ -234,9 +245,10 @@ export default function PlanPanel() {
     <aside
       data-testid="plan-panel"
       aria-label="Plan"
-      className="w-[440px] shrink-0 border-l border-outline-variant bg-surface-dim backdrop-blur flex flex-col"
+      className="w-[440px] shrink-0 m-3 ml-0 ui-panel flex flex-col"
     >
-      <div className="px-5 py-4 border-b border-outline-variant shrink-0">
+      {CHALLENGE_MODE ? <AgentRunHeader phase={planPhase} fallback={intent} /> : null}
+      <div hidden={CHALLENGE_MODE} className="px-5 py-4 border-b border-outline-variant shrink-0">
         <div className="flex items-baseline justify-between gap-3 mb-2">
           <h2 className="text-base text-white">Plan</h2>
           <div className="flex items-center gap-2">
@@ -302,7 +314,7 @@ export default function PlanPanel() {
 
       <div className="flex-1 overflow-y-auto">
         {planPhase === "streaming" && (
-          <div className="px-5 py-4 border-b border-outline-variant">
+          <div className="px-5 py-4">
             <AgentReasoningStream />
           </div>
         )}
@@ -320,22 +332,20 @@ export default function PlanPanel() {
           </div>
         )}
 
-        {steps.map((step, i) => {
+        {(CHALLENGE_MODE && planPhase === "done" ? [] : steps).map((step, i) => {
           const run = stepRuns[i];
           const phase = run?.phase ?? "queued";
           const isActive = activeStepIndex === i;
           return (
             <div
               key={i}
-              className={`px-5 py-4 border-b border-outline-variant/60 ${
-                isActive ? "bg-surface-dim" : ""
+              className={`mx-3 my-1 px-3 py-2.5 rounded-[12px] ${
+                isActive ? "bg-[var(--ui-fill)]" : ""
               }`}
             >
-              <div className="flex items-center justify-between gap-3 mb-2">
+              <div className="flex items-center justify-between gap-3">
                 <StepLabel step={step} idx={i} />
-                <span
-                  className={`text-xs border px-2 py-0.5 shrink-0 ${PHASE_COLOR[phase]}`}
-                >
+                <span className={`ui-chip shrink-0 ${PHASE_CHIP[phase]}`}>
                   {PHASE_LABEL[phase]}
                 </span>
               </div>
@@ -408,7 +418,8 @@ export default function PlanPanel() {
           <PlanNotesSection notesUri={plan.notes} />
         )}
 
-        {planPhase === "done" && plan && (() => {
+        {planPhase === "done" && plan && CHALLENGE_MODE && <AgentRunBody />}
+        {planPhase === "done" && plan && !CHALLENGE_MODE && (() => {
           const total = plan.steps.length;
           const runs = Object.values(stepRuns);
           const passed = runs.filter((r) => r.phase === "passed").length;
@@ -486,12 +497,12 @@ export default function PlanPanel() {
         })()}
       </div>
 
-      <div className="px-5 py-4 border-t border-outline-variant flex flex-col gap-2 shrink-0">
+      <div className="px-4 py-4 border-t border-[var(--ui-hairline)] flex flex-col gap-2 shrink-0">
         {planPhase === "streaming" && (
           <button
             onClick={() => cancelPlan()}
             data-testid="plan-cancel-streaming"
-            className="w-full px-3 py-2.5 border border-outline-variant text-xs text-neutral-300 hover:text-white hover:border-neutral-600 transition-colors"
+            className="ui-btn w-full"
           >
             Cancel
           </button>
@@ -504,14 +515,14 @@ export default function PlanPanel() {
               <button
                 onClick={() => cancelPlan()}
                 data-testid="plan-discard"
-                className="flex-1 px-3 py-2.5 border border-outline-variant text-xs text-neutral-300 hover:text-white hover:border-neutral-600 transition-colors"
+                className="ui-btn flex-1"
               >
                 Discard
               </button>
               <button
                 onClick={() => approvePlan()}
                 data-testid="plan-apply"
-                className="flex-1 px-3 py-2.5 rounded-md border border-schema-accent/40 text-xs text-schema-accent hover:bg-schema-accent/10 hover:border-schema-accent/70 transition-colors"
+                className="ui-btn ui-btn-primary flex-1"
               >
                 Apply
               </button>
@@ -530,13 +541,13 @@ export default function PlanPanel() {
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs text-phase-testing flex items-center gap-2">
               <span className="inline-block w-2 h-2 bg-phase-testing rounded-full schema-spin" />
-              Executing — do not edit files
+              Executing. Do not edit files.
             </span>
             <CancelRunningButton planId={plan?.planId} />
           </div>
         )}
         {planPhase === "done" && (
-          <PlanDoneFooter onClose={() => cancelPlan()} />
+          <PlanDoneFooter onClose={() => { cancelPlan(); if (CHALLENGE_MODE) useStore.getState().setSidePanelView("review"); }} />
         )}
       </div>
     </aside>
@@ -706,73 +717,185 @@ function AgentPrLinks() {
   const busy = useTrust((s) => s.busy);
   const [showChanges, setShowChanges] = useState(false);
   if (!url && !hasReceipt) return run?.status === "done" ? <p className="text-xs text-on-surface-muted">Building the evidence receipt…</p> : null;
+  const ci = run?.ci?.length ? run.ci[run.ci.length - 1]! : null;
   return (
     <div className="flex flex-col gap-2">
-    {run?.runId && run.headSha && (
+    <button
+      onClick={() => useTrust.setState({ open: true, tab: "signoff" })}
+      disabled={!hasReceipt}
+      className="ui-btn ui-btn-primary ui-btn-lg w-full"
+    >
+      Review evidence and sign off
+    </button>
+    <div className="flex gap-2">
+      {run?.runId && run.headSha && (
+        <button onClick={() => setShowChanges(true)} className="ui-btn flex-1">
+          View changes
+        </button>
+      )}
       <button
-        onClick={() => setShowChanges(true)}
-        className="w-full px-3 py-3 bg-surface-container-high border border-schema-accent text-sm text-white hover:bg-schema-accent hover:text-black transition-colors"
+        onClick={() => void runTests()}
+        disabled={!receiptId || tests.phase === "running"}
+        className="ui-btn flex-1"
       >
-        View Claude's changes
+        {tests.phase === "running" ? "Running tests" : "Run tests"}
       </button>
+    </div>
+    {tests.text && (
+      <p className={`ui-code px-1 ${tests.phase === "error" || /[1-9]\d* failed/.test(tests.text) ? "text-phase-fail" : "text-phase-pass"}`}>{tests.text}</p>
     )}
     {showChanges && run?.runId && createPortal(
-      <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-6" onClick={() => setShowChanges(false)}>
-        <div className="w-full max-w-[1400px] h-[88vh] flex flex-col bg-surface" onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center px-4 py-2.5 border border-b-0 border-outline-variant text-sm text-white">
-            Changes by Claude Code · {run.branch ?? run.runId}
-            <button onClick={() => setShowChanges(false)} className="ml-auto text-xs text-on-surface-muted hover:text-white">Close ✕</button>
+      <div className="fixed inset-0 z-[200] ui-scrim flex items-center justify-center p-6" onClick={() => setShowChanges(false)}>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Changes by Claude Code"
+          className="w-full max-w-[1400px] h-[88vh] flex flex-col ui-panel ui-sheet !bg-surface-dim"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => { if (e.key === "Escape") setShowChanges(false); }}
+        >
+          <div className="flex items-center gap-3 pl-6 pr-4 h-14 shrink-0">
+            <h2 className="ui-title">Changes by Claude Code</h2>
+            <span className="ui-chip ui-code">{run.branch ?? run.runId}</span>
+            <button autoFocus onClick={() => setShowChanges(false)} aria-label="Close changes" className="ui-icon-btn ml-auto">
+              <span className="material-symbols-outlined text-[18px]">close</span>
+            </button>
           </div>
           <div className="flex-1 min-h-0"><ChangesView runId={run.runId} /></div>
         </div>
       </div>,
       document.body,
     )}
-    {run?.ci?.length ? (() => {
-      const last = run.ci[run.ci.length - 1]!;
-      return (
-        <p className={`font-[JetBrains_Mono] text-xs ${last.passed ? "text-phase-pass" : "text-phase-fail"}`}>
-          CI ({last.provider}) {last.passed ? "passed" : "failed"} on {last.headSha.slice(0, 8)}{run.ci.length > 1 ? ` · ${run.ci.length - 1} automatic fix attempt(s)` : ""}
-        </p>
-      );
-    })() : null}
-    <button
-      onClick={() => useTrust.setState({ open: true, tab: "signoff" })}
-      disabled={!hasReceipt}
-      className="w-full px-3 py-2.5 border border-schema-accent text-xs text-schema-accent hover:bg-schema-accent hover:text-black transition-colors disabled:opacity-50"
-    >
-      Review evidence & sign off
-    </button>
-    <button
-      onClick={() => void runTests()}
-      disabled={!receiptId || tests.phase === "running"}
-      className="w-full px-3 py-2.5 border border-outline-variant text-xs text-neutral-300 hover:text-white hover:border-neutral-600 transition-colors disabled:opacity-60"
-    >
-      {tests.phase === "running" ? "Running the tests that reach this change…" : "Run tests on the agent's commit"}
-    </button>
-    {tests.text && (
-      <p className={`font-[JetBrains_Mono] text-xs ${tests.phase === "error" || /[1-9]\d* failed/.test(tests.text) ? "text-phase-fail" : "text-phase-pass"}`}>{tests.text}</p>
-    )}
     {!url ? (
       <button
         onClick={() => void openPr()}
         disabled={!!busy}
-        className="w-full px-3 py-3 bg-schema-accent text-black text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+        className="ui-btn w-full"
       >
-        {busy?.startsWith("Pushing") ? "Opening the pull request…" : "Open pull request"}
+        {busy?.startsWith("Pushing") ? "Opening the pull request" : "Open pull request"}
       </button>
     ) : (
-    <div className="flex gap-2">
-      <a href={url} target="_blank" rel="noreferrer" className="flex-1 text-center px-3 py-2.5 border border-schema-accent text-xs text-schema-accent hover:bg-schema-accent hover:text-black transition-colors">
-        Open PR #{url!.split("/").pop()}
+    <div className="flex items-center gap-1 -mx-1">
+      <a href={url} target="_blank" rel="noreferrer" className="ui-btn ui-btn-quiet">
+        PR #{url!.split("/").pop()}
+        <span className="material-symbols-outlined text-[15px] -mr-0.5" style={{ fontVariationSettings: "'wght' 300" }}>arrow_outward</span>
       </a>
       {page && (
-        <a href={page} target="_blank" rel="noreferrer" className="flex-1 text-center px-3 py-2.5 border border-outline-variant text-xs text-neutral-300 hover:text-white hover:border-neutral-600 transition-colors">
+        <a href={page} target="_blank" rel="noreferrer" className="ui-btn ui-btn-quiet">
           Live review page
+          <span className="material-symbols-outlined text-[15px] -mr-0.5" style={{ fontVariationSettings: "'wght' 300" }}>arrow_outward</span>
         </a>
+      )}
+      {ci && (
+        <span className={`ui-chip ml-auto mr-1 ${ci.passed ? "ui-chip-pass" : "ui-chip-fail"}`} title={`${ci.provider} on ${ci.headSha.slice(0, 8)}${run!.ci!.length > 1 ? ` · ${run!.ci!.length - 1} automatic fix attempt(s)` : ""}`}>
+          <span className="ui-dot" />CI {ci.passed ? "passed" : "failed"}
+        </span>
       )}
     </div>
     )}
+    </div>
+  );
+}
+
+/** Challenge-mode panel header: which issue, which agent, where the run stands. */
+function AgentRunHeader({ phase, fallback }: { phase: string; fallback: string }) {
+  const run = useTrust((s) => s.run);
+  const reqs = useTrust((s) => s.reqs);
+  const [expanded, setExpanded] = useState(false);
+  const title = reqs.find((r) => r.id === run?.requirementId)?.title ?? run?.prompt ?? "Agent run";
+  const working = run?.status === "running" || phase === "streaming" || phase === "running";
+  const failed = run?.status === "failed";
+  const summary = run?.summary ?? (run ? "" : fallback);
+  return (
+    <div className="px-5 pt-5 pb-4 shrink-0">
+      <div className="flex items-center gap-2">
+        {run?.requirementId && <span className="ui-code text-on-surface-muted">{run.requirementId}</span>}
+        <span className={`ui-chip ${failed ? "ui-chip-fail" : working ? "ui-chip-info" : "ui-chip-pass"}`}>
+          <span className={`ui-dot ${working ? "animate-pulse" : ""}`} />{failed ? "Failed" : working ? "Working" : "Finished"}
+        </span>
+        <span className="ui-meta ml-auto truncate">{run?.model ?? "Claude Code"}</span>
+      </div>
+      <h2 className="ui-title mt-2.5 leading-snug">{title}</h2>
+      {summary && (
+        <>
+          <p className={`ui-body mt-2.5 ${expanded ? "" : "line-clamp-4"} ${phase === "streaming" ? "schema-cursor" : ""}`}>{summary}</p>
+          {summary.length > 240 && (
+            <button onClick={() => setExpanded(!expanded)} aria-expanded={expanded} className="mt-1.5 text-xs font-medium text-on-surface hover:text-on-surface-variant transition-colors">
+              {expanded ? "Show less" : "Read the full summary"}
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/** What the run touched, decided and left open, straight from the run record. */
+function AgentRunBody() {
+  const run = useTrust((s) => s.run);
+  if (!run) return null;
+  const secs = run.durationMs ? Math.round(run.durationMs / 1000) : null;
+  const files = run.filesChanged ?? [];
+  const facts: [string, string][] = [
+    ["Files changed", String(files.length)],
+    ["Agent turns", run.turns ? String(run.turns) : "n/a"],
+    ["Time", secs === null ? "n/a" : secs >= 60 ? `${Math.floor(secs / 60)} min ${secs % 60} s` : `${secs} s`],
+  ];
+  const heading = "ui-section mt-6 mb-2.5 px-2";
+  return (
+    <div data-testid="plan-summary" className="px-3 pb-5">
+      <div className="grid grid-cols-3 gap-2">
+        {facts.map(([label, value]) => (
+          <div key={label} className="ui-card px-3.5 py-3">
+            <p className="ui-meta">{label}</p>
+            <p className="mt-1 text-[1.0625rem] font-semibold tracking-[-0.02em] text-on-surface tabular-nums">{value}</p>
+          </div>
+        ))}
+      </div>
+
+      {run.openQuestions.length > 0 && (
+        <>
+          <h3 className={heading}>Left for you to decide</h3>
+          <ul className="ui-card ui-divide px-4">
+            {run.openQuestions.map((q) => (
+              <li key={q} className="flex gap-3 py-3 text-[0.8125rem] leading-relaxed text-on-surface-variant">
+                <span className="ui-dot text-phase-testing mt-[0.5rem]" />{q}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {run.decisions.length > 0 && (
+        <>
+          <h3 className={heading}>Decisions the agent made</h3>
+          <div className="space-y-2">
+            {run.decisions.map((d, i) => (
+              <div key={i} className="ui-card px-4 py-3.5">
+                <div className="flex items-start gap-2">
+                  <p className="text-[0.8125rem] leading-snug font-medium text-on-surface flex-1">{d.decision}</p>
+                  {d.confidence === "unsure" && <span className="ui-chip ui-chip-warn shrink-0">Unsure</span>}
+                </div>
+                <p className="ui-meta mt-1.5 leading-relaxed">{d.why}</p>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {files.length > 0 && (
+        <>
+          <h3 className={heading}>Files changed</h3>
+          <ul className="ui-card ui-divide px-4">
+            {files.map((f) => (
+              <li key={f} className="py-2.5 min-w-0">
+                <p className="ui-code text-on-surface truncate">{f.split("/").pop()}</p>
+                <p className="ui-meta truncate" title={f}>{f.split("/").slice(0, -1).join("/")}</p>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }
@@ -898,7 +1021,7 @@ function PlanDoneFooter({ onClose }: { onClose: () => void }) {
                     ? "Reverts the in-memory graph only — source files stay changed. Use git to restore disk."
                     : "Roll the graph back to its pre-plan state."
             }
-            className="flex-1 px-3 py-2.5 border border-outline hover:border-violation/60 hover:text-violation text-xs text-on-surface-variant transition-colors"
+            className="ui-btn flex-1"
           >
             Undo this plan
             {realApply && !canRealUndo ? " (graph only)" : ""}
@@ -907,9 +1030,9 @@ function PlanDoneFooter({ onClose }: { onClose: () => void }) {
         <button
           onClick={onClose}
           data-testid="plan-done-close"
-          className="flex-1 px-3 py-2.5 rounded-md border border-schema-accent/40 text-schema-accent hover:bg-schema-accent/10 hover:border-schema-accent/70 text-xs transition-colors"
+          className="ui-btn ui-btn-quiet flex-1"
         >
-          Close
+          {CHALLENGE_MODE ? "Back to issues" : "Close"}
         </button>
       </div>
       {canGitUndo && (prState.kind === "idle" || prState.kind === "err") && (
